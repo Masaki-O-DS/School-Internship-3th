@@ -62,7 +62,7 @@ def joystick_control():
 
         # サーボ角度の定義
         SERVO_NECK_UP = 180                # 首を右に動かす角度 
-        SERVO_NECK_DOWN = 20               # 首を下に動かす角度
+        SERVO_NECK_DOWN = 50               # 首を下に動かす角度
         SERVO_LEFT = 30                     # サーボ1を下に動かす角度
         SERVO_RIGHT = 180                  # サーボ1を上に動かす角度
         SERVO_NECK_NEUTRAL = 90            # 首の中立位置
