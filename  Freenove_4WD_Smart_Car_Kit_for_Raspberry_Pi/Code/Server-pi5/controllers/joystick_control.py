@@ -36,10 +36,10 @@ def joystick_control():
         if joystick_count > 0:
             joystick = pygame.joystick.Joystick(0)
             joystick.init()
-            logging.info(f"Joystick name: {joystick.get_name()}")
-            logging.info(f"Number of axes: {joystick.get_numaxes()}")
-            logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
-            logging.info(f"Number of hats: {joystick.get_numhats()}")
+            # logging.info(f"Joystick name: {joystick.get_name()}")
+            # logging.info(f"Number of axes: {joystick.get_numaxes()}")
+            # logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
+            # logging.info(f"Number of hats: {joystick.get_numhats()}")
         else:
             logging.error("No joysticks connected. Exiting program.")
             pygame.quit()
@@ -94,14 +94,14 @@ def joystick_control():
 
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
-                    logging.info(f"Button {button} released.")
+                    # logging.info(f"Button {button} released.")
                     # Reset servos to neutral when buttons are released
                     if button in [4, 5]:  # Servo0 buttons
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-                        logging.info("Servo0 reset to neutral.")
+                        # logging.info("Servo0 reset to neutral.")
                     if button in [6, 7]:  # Servo1 buttons
                         servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
-                        logging.info("Servo1 reset to neutral.")
+                        # logging.info("Servo1 reset to neutral.")
 
                 elif event.type == pygame.JOYHATMOTION:
                     hat = event.hat
