@@ -81,7 +81,7 @@ def test_Infrared():
 def test_Servo():
     try:
         while True:
-            for i in range(10, 110, 1):
+            for i in range(50, 110, 1):
                 pwm_servo.setServoPwm('0', i)
                 print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
@@ -238,9 +238,9 @@ def joystick_Control():
         servo_channel_left_right = '1'    # Servo 1 controls left/right
 
         # Define servo angles
-        SERVO_NECK_UP = 170                # Increased upward angle
+        SERVO_NECK_UP = 180                # Increased upward angle
         SERVO_NECK_DOWN = 60               # Downward angle
-        SERVO_LEFT = 60                    # Left position for Servo 1
+        SERVO_LEFT = 30                    # Further left position for Servo 1
         SERVO_RIGHT = 120                  # Right position for Servo 1
         SERVO_NECK_NEUTRAL = 90            # Neutral position for Servo 0
         SERVO_LEFT_RIGHT_NEUTRAL = 90      # Neutral position for Servo 1
