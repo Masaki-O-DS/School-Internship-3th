@@ -60,7 +60,7 @@ def joystick_control():
         SERVO_NECK_UP = 180                # Move neck up
         SERVO_NECK_DOWN = 60               # Move neck down
         SERVO_LEFT = 15                     # Move Servo1 to the left
-        SERVO_RIGHT = 180                  # Move Servo1 to the right
+        SERVO_RIGHT = 170                  # Move Servo1 to the right
         SERVO_NECK_NEUTRAL = 90            # Neutral position for neck servo
         SERVO_LEFT_RIGHT_NEUTRAL = 90      # Neutral position for Servo1
 
