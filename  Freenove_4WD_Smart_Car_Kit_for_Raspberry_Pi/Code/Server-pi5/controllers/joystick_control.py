@@ -157,4 +157,34 @@ def joystick_control():
 
             # Convert to PWM values (-4095 to 4095)
             duty_front_left = int(front_left * MAX_PWM)
-            duty_front_r
+            duty_front_right = int(front_right * MAX_PWM)
+            duty_back_left = int(back_left * MAX_PWM)
+            duty_back_right = int(back_right * MAX_PWM)
+
+            # Display PWM values
+            print(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+
+            # Send PWM values to motors
+            motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+
+            # Short wait
+            time.sleep(0.05)
+
+    except KeyboardInterrupt:
+        print("\nExiting program.")
+        try:
+            # Stop motors
+            motor.setMotorModel(0, 0, 0, 0)
+            # Reset servos to neutral positions
+            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+            servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
+        except Exception as e:
+            print(f"Error while stopping motors or resetting servos: {e}")
+        finally:
+            pygame.quit()
+        sys.exit()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        pygame.quit()
+        sys.exit()
