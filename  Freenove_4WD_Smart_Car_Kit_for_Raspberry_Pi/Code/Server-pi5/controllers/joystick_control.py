@@ -4,11 +4,7 @@ import time
 import sys
 import pygame
 from Motor import Motor
-from Ultrasonic import Ultrasonic
-from Line_Tracking import Line_Tracking
 from servo import Servo
-from ADC import Adc
-from Buzzer import Buzzer
 
 def joystick_control():
     """
@@ -21,11 +17,7 @@ def joystick_control():
     try:
         # Initialize hardware components
         motor = Motor()
-        ultrasonic = Ultrasonic()
-        line_tracking = Line_Tracking()
         servo = Servo()
-        adc = Adc()
-        buzzer = Buzzer()
 
         # Initialize Pygame
         pygame.init()
