@@ -1,56 +1,65 @@
 import time
+import sys
+import pygame
+from Motor import *
+from Ultrasonic import *
+from Line_Tracking import *
+from servo import *
+from ADC import *
+from Buzzer import *
 
-        
-        
-from Motor import *            
-PWM=Motor()          
-def test_Motor(): 
+# ハードウェアコンポーネントの初期化
+PWM = Motor()
+ultrasonic = Ultrasonic()
+line = Line_Tracking()
+pwm_servo = Servo()
+adc = Adc()
+buzzer = Buzzer()
+
+def test_Motor():
     try:
-        PWM.setMotorModel(1000,1000,1000,1000)         #Forward
+        PWM.setMotorModel(1000,1000,1000,1000)         # 前進
         print ("The car is moving forward")
         time.sleep(1)
-        PWM.setMotorModel(-1000,-1000,-1000,-1000)     #Back
+        PWM.setMotorModel(-1000,-1000,-1000,-1000)     # 後退
         print ("The car is going backwards")
         time.sleep(1)
-        PWM.setMotorModel(-1500,-1500,2000,2000)       #Turn left
+        PWM.setMotorModel(-1500,-1500,2000,2000)       # 左折
         print ("The car is turning left")
         time.sleep(1)
-        PWM.setMotorModel(2000,2000,-1500,-1500)       #Turn right 
+        PWM.setMotorModel(2000,2000,-1500,-1500)       # 右折 
         print ("The car is turning right")  
         time.sleep(1)
-        PWM.setMotorModel(-2000,2000,2000,-2000)       #Move left 
+        PWM.setMotorModel(-2000,2000,2000,-2000)       # 左移動 
         print ("The car is moving left")  
         time.sleep(1)
-        PWM.setMotorModel(2000,-2000,-2000,2000)       #Move right 
+        PWM.setMotorModel(2000,-2000,-2000,2000)       # 右移動 
         print ("The car is moving right")  
         time.sleep(1)    
             
-        PWM.setMotorModel(0,2000,2000,0)         #Move diagonally to the left and forward
+        PWM.setMotorModel(0,2000,2000,0)         # 左前斜め移動
         print ("The car is moving diagonally to the left and forward")  
         time.sleep(1)
-        PWM.setMotorModel(0,-2000,-2000,0)       #Move diagonally to the right and backward
+        PWM.setMotorModel(0,-2000,-2000,0)       # 右後斜め移動
         print ("The car is moving diagonally to the right and backward")  
         time.sleep(1) 
-        PWM.setMotorModel(2000,0,0,2000)         #Move diagonally to the right and forward
+        PWM.setMotorModel(2000,0,0,2000)         # 右前斜め移動
         print ("The car is moving diagonally to the right and forward")  
         time.sleep(1)
-        PWM.setMotorModel(-2000,0,0,-2000)       #Move diagonally to the left and backward
+        PWM.setMotorModel(-2000,0,0,-2000)       # 左後斜め移動
         print ("The car is moving diagonally to the left and backward")  
         time.sleep(1) 
         
-        PWM.setMotorModel(0,0,0,0)               #Stop
+        PWM.setMotorModel(0,0,0,0)               # 停止
         print ("\nEnd of program")
     except KeyboardInterrupt:
         PWM.setMotorModel(0,0,0,0)
         print ("\nEnd of program")
 
-
-from Ultrasonic import *
-ultrasonic=Ultrasonic()                
 def test_Ultrasonic():
     try:
         while True:
-            data=ultrasonic.get_distance()   #Get the value
+            data = ultrasonic.get_distance()   # 距離取得
             print ("Obstacle distance is "+str(data)+"CM")
             time.sleep(1)
     except KeyboardInterrupt:
@@ -59,65 +68,54 @@ def test_Ultrasonic():
 def car_Rotate():
     try:
         while True:
-          PWM.Rotate(0)
+            PWM.Rotate(0)
     except KeyboardInterrupt:
         print ("\nEnd of program")
 
-from Line_Tracking import *
-line=Line_Tracking()
 def test_Infrared():
     try:
         line.test_Infrared()
     except KeyboardInterrupt:
         print ("\nEnd of program")
 
-
-from servo import *
-pwm=Servo()
 def test_Servo():
     try:
         while True:
             for i in range(50, 110, 1):
-                pwm.setServoPwm('0', i)
+                pwm_servo.setServoPwm('0', i)
                 print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
             for i in range(110, 50, -1):
-                pwm.setServoPwm('0', i)
+                pwm_servo.setServoPwm('0', i)
                 print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
             for i in range(80, 150, 1):
-                pwm.setServoPwm('1', i)
+                pwm_servo.setServoPwm('1', i)
                 print(f"Servo 1 set to {i} degrees")
                 time.sleep(0.01)
             for i in range(150, 80, -1):
-                pwm.setServoPwm('1', i)
+                pwm_servo.setServoPwm('1', i)
                 print(f"Servo 1 set to {i} degrees")
                 time.sleep(0.01)   
     except KeyboardInterrupt:
-        pwm.setServoPwm('0', 90)
-        pwm.setServoPwm('1', 90)
+        pwm_servo.setServoPwm('0', 90)
+        pwm_servo.setServoPwm('1', 90)
         print ("\nEnd of program")
 
-        
-        
-from ADC import *
-adc=Adc()
 def test_Adc():
     try:
         while True:
-            Left_IDR=adc.recvADC(0)
+            Left_IDR = adc.recvADC(0)
             print ("The photoresistor voltage on the left is "+str(Left_IDR)+"V")
-            Right_IDR=adc.recvADC(1)
+            Right_IDR = adc.recvADC(1)
             print ("The photoresistor voltage on the right is "+str(Right_IDR)+"V")
-            Power=adc.recvADC(2)
+            Power = adc.recvADC(2)
             print ("The battery voltage is "+str(Power*3)+"V")
             time.sleep(1)
             print ('\n')
     except KeyboardInterrupt:
         print ("\nEnd of program")
 
-from Buzzer import *
-buzzer=Buzzer()
 def test_Buzzer():
     try:
         buzzer.run('1')
@@ -133,31 +131,93 @@ def test_Buzzer():
         buzzer.run('0')
         print ("\nEnd of program")
            
-# Main program logic follows:
+def control_Neck_With_Pygame():
+    """
+    Pygameのキーボード入力を使用して首のサーボ（サーボ0と仮定）を制御します。
+    上矢印キー: 首を上に動かす
+    下矢印キー: 首を下に動かす
+    Escキーまたはウィンドウを閉じると終了
+    """
+    try:
+        # Pygameの初期化
+        pygame.init()
+        screen = pygame.display.set_mode((400, 300))
+        pygame.display.set_caption('Neck Control')
+        font = pygame.font.Font(None, 36)
+        clock = pygame.time.Clock()
+
+        # 初期サーボ位置
+        servo_channel = '0'  # サーボ0が首を制御すると仮定
+        position = 90  # 中立位置から開始
+
+        # 移動量の定義
+        increment = 5
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                    elif event.key == pygame.K_UP:
+                        position += increment
+                        if position > 180:
+                            position = 180
+                        pwm_servo.setServoPwm(servo_channel, position)
+                        print(f"Neck moved up to {position} degrees")
+                    elif event.key == pygame.K_DOWN:
+                        position -= increment
+                        if position < 0:
+                            position = 0
+                        pwm_servo.setServoPwm(servo_channel, position)
+                        print(f"Neck moved down to {position} degrees")
+
+            # Pygameウィンドウの更新
+            screen.fill((255, 255, 255))
+            text = font.render(f"Neck Position: {position}°", True, (0, 0, 0))
+            screen.blit(text, (50, 130))
+            pygame.display.flip()
+            clock.tick(30)
+
+        # 終了時にサーボを中立位置にリセット
+        pwm_servo.setServoPwm(servo_channel, 90)
+        print("Neck reset to 90 degrees. Exiting...")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        pygame.quit()
+
+# メインプログラムのロジック:
 if __name__ == '__main__':
 
     print ('Program is starting ... ')
-    import sys
-    if len(sys.argv)<2:
+    if len(sys.argv) < 2:
         print ("Parameter error: Please assign the device")
         exit() 
-    if sys.argv[1] == 'Led':
+
+    device = sys.argv[1]
+
+    if device == 'Led':
         test_Led()
-    elif sys.argv[1] == 'Motor':
+    elif device == 'Motor':
         test_Motor()
-    elif sys.argv[1] == 'Ultrasonic':
+    elif device == 'Ultrasonic':
         test_Ultrasonic()
-    elif sys.argv[1] == 'Infrared':
+    elif device == 'Infrared':
         test_Infrared()        
-    elif sys.argv[1] == 'Servo': 
+    elif device == 'Servo': 
         test_Servo()               
-    elif sys.argv[1] == 'ADC':   
+    elif device == 'ADC':   
         test_Adc()  
-    elif sys.argv[1] == 'Buzzer':   
+    elif device == 'Buzzer':   
         test_Buzzer()  
-    elif sys.argv[1] == 'Rotate':
+    elif device == 'Rotate':
         car_Rotate()
-        
-        
-        
-        
+    elif device == 'Neck':
+        control_Neck_With_Pygame()
+    else:
+        print(f"Unknown device: {device}")
+        print("Available devices: Led, Motor, Ultrasonic, Infrared, Servo, ADC, Buzzer, Rotate, Neck")
