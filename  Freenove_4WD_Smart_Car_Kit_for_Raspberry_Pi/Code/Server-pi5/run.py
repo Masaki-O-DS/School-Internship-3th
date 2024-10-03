@@ -151,7 +151,7 @@ def control_Neck_With_Pygame():
         position = 90  # Starting at neutral position
 
         # Define movement increment
-        increment = 5
+        increment = 20
 
         running = True
         while running:
