@@ -17,7 +17,7 @@ def camera_control():
         preview_config = picam2.create_preview_configuration(main={"format": 'RGB888', "size": (640, 480)})
         picam2.configure(preview_config)
         picam2.start()
-        print("Camera started successfully.")
+        # print("Camera started successfully.")
 
         # Initialize ARUCO dictionary and parameters
         aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)  # 4x4 bit ARUCO markers
@@ -29,12 +29,12 @@ def camera_control():
 
             # Validate the captured frame
             if frame is None or frame.size == 0:
-                print("Empty frame captured. Skipping frame processing.")
+                # print("Empty frame captured. Skipping frame processing.")
                 continue
 
             # Check if the frame has the correct number of channels (3 for RGB)
             if len(frame.shape) != 3 or frame.shape[2] != 3:
-                print(f"Unexpected frame shape: {frame.shape}. Expected 3 channels (RGB). Skipping frame.")
+                # print(f"Unexpected frame shape: {frame.shape}. Expected 3 channels (RGB). Skipping frame.")
                 continue
 
             # Convert frame to grayscale for ARUCO detection
@@ -54,7 +54,7 @@ def camera_control():
 
             # Exit the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("Stopping camera feed.")
+                # print("Stopping camera feed.")
                 break
 
             # Short delay to reduce CPU usage
@@ -68,4 +68,4 @@ def camera_control():
         # Ensure that the camera is stopped and all OpenCV windows are closed
         picam2.stop()
         cv2.destroyAllWindows()
-        print("Camera and OpenCV windows have been closed.")
+        # print("Camera and OpenCV windows have been closed.")

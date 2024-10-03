@@ -14,7 +14,7 @@ def main():
     joystick_thread.daemon = True
     joystick_thread.start()
     
-    print("Joystick control has been started.")
+    # print("Joystick control has been started.")
     
     # Run camera_control in the main thread
     try:
