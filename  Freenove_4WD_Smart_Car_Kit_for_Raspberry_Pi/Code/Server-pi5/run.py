@@ -8,7 +8,7 @@ from servo import Servo
 from ADC import Adc
 from Buzzer import Buzzer
 
-# ハードウェアコンポーネントの初期化
+# Initialize hardware components
 PWM = Motor()
 ultrasonic = Ultrasonic()
 line = Line_Tracking()
@@ -18,65 +18,65 @@ buzzer = Buzzer()
 
 def test_Motor():
     try:
-        PWM.setMotorModel(1000,1000,1000,1000)         # 前進
-        print ("The car is moving forward")
+        PWM.setMotorModel(1000, 1000, 1000, 1000)         # Forward
+        print("The car is moving forward")
         time.sleep(1)
-        PWM.setMotorModel(-1000,-1000,-1000,-1000)     # 後退
-        print ("The car is going backwards")
+        PWM.setMotorModel(-1000, -1000, -1000, -1000)     # Backward
+        print("The car is going backwards")
         time.sleep(1)
-        PWM.setMotorModel(-1500,-1500,2000,2000)       # 左折
-        print ("The car is turning left")
+        PWM.setMotorModel(-1500, -1500, 2000, 2000)       # Turn left
+        print("The car is turning left")
         time.sleep(1)
-        PWM.setMotorModel(2000,2000,-1500,-1500)       # 右折 
-        print ("The car is turning right")  
+        PWM.setMotorModel(2000, 2000, -1500, -1500)       # Turn right 
+        print("The car is turning right")  
         time.sleep(1)
-        PWM.setMotorModel(-2000,2000,2000,-2000)       # 左移動 
-        print ("The car is moving left")  
+        PWM.setMotorModel(-2000, 2000, 2000, -2000)       # Move left 
+        print("The car is moving left")  
         time.sleep(1)
-        PWM.setMotorModel(2000,-2000,-2000,2000)       # 右移動 
-        print ("The car is moving right")  
+        PWM.setMotorModel(2000, -2000, -2000, 2000)       # Move right 
+        print("The car is moving right")  
         time.sleep(1)    
             
-        PWM.setMotorModel(0,2000,2000,0)         # 左前斜め移動
-        print ("The car is moving diagonally to the left and forward")  
+        PWM.setMotorModel(0, 2000, 2000, 0)               # Diagonal left forward
+        print("The car is moving diagonally to the left and forward")  
         time.sleep(1)
-        PWM.setMotorModel(0,-2000,-2000,0)       # 右後斜め移動
-        print ("The car is moving diagonally to the right and backward")  
+        PWM.setMotorModel(0, -2000, -2000, 0)             # Diagonal right backward
+        print("The car is moving diagonally to the right and backward")  
         time.sleep(1) 
-        PWM.setMotorModel(2000,0,0,2000)         # 右前斜め移動
-        print ("The car is moving diagonally to the right and forward")  
+        PWM.setMotorModel(2000, 0, 0, 2000)               # Diagonal right forward
+        print("The car is moving diagonally to the right and forward")  
         time.sleep(1)
-        PWM.setMotorModel(-2000,0,0,-2000)       # 左後斜め移動
-        print ("The car is moving diagonally to the left and backward")  
+        PWM.setMotorModel(-2000, 0, 0, -2000)             # Diagonal left backward
+        print("The car is moving diagonally to the left and backward")  
         time.sleep(1) 
         
-        PWM.setMotorModel(0,0,0,0)               # 停止
-        print ("\nEnd of program")
+        PWM.setMotorModel(0, 0, 0, 0)                     # Stop
+        print("\nEnd of program")
     except KeyboardInterrupt:
-        PWM.setMotorModel(0,0,0,0)
-        print ("\nEnd of program")
+        PWM.setMotorModel(0, 0, 0, 0)
+        print("\nEnd of program")
 
 def test_Ultrasonic():
     try:
         while True:
-            data = ultrasonic.get_distance()   # 距離取得
-            print ("Obstacle distance is "+str(data)+"CM")
+            data = ultrasonic.get_distance()   # Get distance
+            print(f"Obstacle distance is {data} CM")
             time.sleep(1)
     except KeyboardInterrupt:
-        print ("\nEnd of program")
+        print("\nEnd of program")
 
 def car_Rotate():
     try:
         while True:
             PWM.Rotate(0)
     except KeyboardInterrupt:
-        print ("\nEnd of program")
+        print("\nEnd of program")
 
 def test_Infrared():
     try:
         line.test_Infrared()
     except KeyboardInterrupt:
-        print ("\nEnd of program")
+        print("\nEnd of program")
 
 def test_Servo():
     try:
@@ -100,57 +100,57 @@ def test_Servo():
     except KeyboardInterrupt:
         pwm_servo.setServoPwm('0', 90)
         pwm_servo.setServoPwm('1', 90)
-        print ("\nEnd of program")
+        print("\nEnd of program")
 
 def test_Adc():
     try:
         while True:
             Left_IDR = adc.recvADC(0)
-            print ("The photoresistor voltage on the left is "+str(Left_IDR)+"V")
+            print(f"The photoresistor voltage on the left is {Left_IDR} V")
             Right_IDR = adc.recvADC(1)
-            print ("The photoresistor voltage on the right is "+str(Right_IDR)+"V")
+            print(f"The photoresistor voltage on the right is {Right_IDR} V")
             Power = adc.recvADC(2)
-            print ("The battery voltage is "+str(Power*3)+"V")
+            print(f"The battery voltage is {Power * 3} V")
             time.sleep(1)
-            print ('\n')
+            print('\n')
     except KeyboardInterrupt:
-        print ("\nEnd of program")
+        print("\nEnd of program")
 
 def test_Buzzer():
     try:
         buzzer.run('1')
         time.sleep(1)
-        print ("1S")
+        print("1S")
         time.sleep(1)
-        print ("2S")
+        print("2S")
         time.sleep(1)
-        print ("3S")
+        print("3S")
         buzzer.run('0')
-        print ("\nEnd of program")
+        print("\nEnd of program")
     except KeyboardInterrupt:
         buzzer.run('0')
-        print ("\nEnd of program")
-
+        print("\nEnd of program")
+           
 def control_Neck_With_Pygame():
     """
-    Pygameのキーボード入力を使用して首のサーボ（サーボ0と仮定）を制御します。
-    上矢印キー: 首を上に動かす
-    下矢印キー: 首を下に動かす
-    Escキーまたはウィンドウを閉じると終了
+    Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
+    Up Arrow: Move neck up
+    Down Arrow: Move neck down
+    Press Esc or close the window to exit
     """
     try:
-        # Pygameの初期化
+        # Initialize Pygame
         pygame.init()
         screen = pygame.display.set_mode((400, 300))
         pygame.display.set_caption('Neck Control')
         font = pygame.font.Font(None, 36)
         clock = pygame.time.Clock()
 
-        # 初期サーボ位置
-        servo_channel = '0'  # サーボ0が首を制御すると仮定
-        position = 90  # 中立位置から開始
+        # Initial servo position
+        servo_channel = '0'  # Assuming Servo 0 controls the neck
+        position = 90  # Starting at neutral position
 
-        # 移動量の定義
+        # Define movement increment
         increment = 5
 
         running = True
@@ -174,14 +174,14 @@ def control_Neck_With_Pygame():
                         pwm_servo.setServoPwm(servo_channel, position)
                         print(f"Neck moved down to {position} degrees")
 
-            # Pygameウィンドウの更新
+            # Update the Pygame window
             screen.fill((255, 255, 255))
             text = font.render(f"Neck Position: {position}°", True, (0, 0, 0))
             screen.blit(text, (50, 130))
             pygame.display.flip()
             clock.tick(30)
 
-        # 終了時にサーボを中立位置にリセット
+        # Reset servo to neutral position on exit
         pwm_servo.setServoPwm(servo_channel, 90)
         print("Neck reset to 90 degrees. Exiting...")
 
@@ -190,165 +190,196 @@ def control_Neck_With_Pygame():
     finally:
         pygame.quit()
 
-def main():
-    # Pygameの初期化
-    pygame.init()
-
-    # ジョイスティックの初期化
-    pygame.joystick.init()
-
-    # 接続されているジョイスティックの数を取得
-    joystick_count = pygame.joystick.get_count()
-    print(f"接続されているジョイスティックの数: {joystick_count}")
-
-    if joystick_count > 0:
-        joystick = pygame.joystick.Joystick(0)
-        joystick.init()
-        print(f"ジョイスティック名: {joystick.get_name()}")
-        print(f"軸の数: {joystick.get_numaxes()}")
-        print(f"ボタンの数: {joystick.get_numbuttons()}")
-        print(f"ハットの数: {joystick.get_numhats()}")
-    else:
-        print("ジョイスティックが接続されていません。プログラムを終了します。")
-        pygame.quit()
-        sys.exit()
-
-    # モーターの初期化
-    motor = Motor()
-
-    # デッドゾーンの設定
-    DEAD_ZONE_MOVEMENT = 0.2
-    DEAD_ZONE_ROTATION = 0.2
-
-    # PWMの最大値
-    MAX_PWM = 4095
-
-    # サーボ制御用変数
-    servo_channel_neck = '0'  # 首を制御するサーボのチャンネル
-    servo_channel_left_right = '1'  # 左右を制御するサーボのチャンネル
-
+def joystick_Control():
+    """
+    Controls the car and servos using a joystick.
+    L1 Trigger: Move Servo 0 downward
+    R1 Trigger: Move Servo 0 upward
+    L2 Button: Move Servo 1 to the left
+    R2 Button: Move Servo 1 to the right
+    """
     try:
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    raise KeyboardInterrupt  # プログラム終了
+        # Initialize Pygame
+        pygame.init()
 
-                elif event.type == pygame.JOYBUTTONDOWN:
-                    button = event.button
-                    print(f"ボタン {button} が押されました。")
+        # Initialize joystick
+        pygame.joystick.init()
 
-                    # ボタンのマッピング（ジョイスティックによって異なる場合があります）
-                    # 一般的なXboxコントローラーのボタンマッピングを仮定しています。
-                    # 必要に応じてボタン番号を調整してください。
-                    if button == 4:  # L1
-                        pwm_servo.setServoPwm(servo_channel_neck, 90)  # 下を向く
-                        print("Servo が下を向きました。")
-                    elif button == 5:  # R1
-                        pwm_servo.setServoPwm(servo_channel_neck, 90)  # 上を向く
-                        print("Servo が上を向きました。")
-                    elif button == 6:  # L2
-                        pwm_servo.setServoPwm(servo_channel_left_right, 90)  # 左を向く
-                        print("Servo が左を向きました。")
-                    elif button == 7:  # R2
-                        pwm_servo.setServoPwm(servo_channel_left_right, 90)  # 右を向く
-                        print("Servo が右を向きました。")
+        # Get the number of joysticks
+        joystick_count = pygame.joystick.get_count()
+        print(f"Number of joysticks connected: {joystick_count}")
 
-                elif event.type == pygame.JOYBUTTONUP:
-                    button = event.button
-                    print(f"ボタン {button} が離されました。")
+        if joystick_count > 0:
+            joystick = pygame.joystick.Joystick(0)
+            joystick.init()
+            print(f"Joystick name: {joystick.get_name()}")
+            print(f"Number of axes: {joystick.get_numaxes()}")
+            print(f"Number of buttons: {joystick.get_numbuttons()}")
+            print(f"Number of hats: {joystick.get_numhats()}")
+        else:
+            print("No joysticks connected. Exiting program.")
+            pygame.quit()
+            sys.exit()
 
-                elif event.type == pygame.JOYHATMOTION:
-                    hat = event.hat
-                    value = event.value
-                    print(f"ハット {hat} が動きました。値: {value}")
+        # Initialize Motor
+        motor = Motor()
 
-            # モーター制御用のジョイスティック入力を取得
-            # 左スティック
-            left_horizontal = joystick.get_axis(0)  # 左スティックのX軸
-            left_vertical = joystick.get_axis(1)    # 左スティックのY軸
+        # Define dead zones
+        DEAD_ZONE_MOVEMENT = 0.2
+        DEAD_ZONE_ROTATION = 0.2
 
-            # 右スティック
-            right_horizontal = joystick.get_axis(3)  # 右スティックのX軸
-            # right_vertical = joystick.get_axis(4)    # 右スティックのY軸（未使用）
+        # Maximum PWM value
+        MAX_PWM = 4095
 
-            # 生の軸データを表示
-            raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
-            print(f"Raw axes: {raw_axes}")
+        # Define servo channels
+        servo_channel_neck = '0'      # Servo 0 controls neck up/down
+        servo_channel_left_right = '1'  # Servo 1 controls left/right
 
-            # デッドゾーンの適用
-            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
-                left_horizontal = 0
-            if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
-                left_vertical = 0
-            if abs(right_horizontal) < DEAD_ZONE_ROTATION:
-                right_horizontal = 0
-            # if abs(right_vertical) < DEAD_ZONE_ROTATION:
-            #     right_vertical = 0
+        # Define servo angles
+        SERVO_NECK_UP = 120
+        SERVO_NECK_DOWN = 60
+        SERVO_LEFT = 60
+        SERVO_RIGHT = 120
+        SERVO_NECK_NEUTRAL = 90
+        SERVO_LEFT_RIGHT_NEUTRAL = 90
 
-            # 移動方向の計算
-            y = -left_vertical
-            x = left_horizontal
+        # Set servos to neutral position at start
+        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+        print("Servos set to neutral positions.")
 
-            # 回転の計算
-            rotation = right_horizontal  # 右スティックのX軸で回転を制御
+        try:
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        raise KeyboardInterrupt  # Exit the loop
 
-            # 回転の強さを調整
-            rotation_strength = rotation * 0.5  # 0.5倍
+                    elif event.type == pygame.JOYBUTTONDOWN:
+                        button = event.button
+                        print(f"Button {button} pressed.")
 
-            # 各モーターへの指令値を計算
-            front_left = y + x + rotation_strength
-            front_right = y - x - rotation_strength
-            back_left = y - x + rotation_strength
-            back_right = y + x - rotation_strength
+                        # Xbox Controller Button Mapping (may vary)
+                        if button == 4:  # L1 Trigger
+                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_DOWN)
+                            print("Servo 0 moved down.")
+                        elif button == 5:  # R1 Trigger
+                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_UP)
+                            print("Servo 0 moved up.")
+                        elif button == 6:  # L2 Button
+                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT)
+                            print("Servo 1 moved to the left.")
+                        elif button == 7:  # R2 Button
+                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_RIGHT)
+                            print("Servo 1 moved to the right.")
 
-            # モーターの指令値を-1から1の範囲に正規化
-            max_val = max(abs(front_left), abs(front_right), abs(back_left), abs(back_right), 1)
-            front_left /= max_val
-            front_right /= max_val
-            back_left /= max_val
-            back_right /= max_val
+                    elif event.type == pygame.JOYBUTTONUP:
+                        button = event.button
+                        print(f"Button {button} released.")
+                        # Reset servos to neutral when buttons are released
+                        if button in [4, 5]:  # L1 or R1 released
+                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+                            print("Servo 0 reset to neutral.")
+                        elif button in [6, 7]:  # L2 or R2 released
+                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+                            print("Servo 1 reset to neutral.")
 
-            # PWM値に変換（-4095から4095）
-            duty_front_left = int(front_left * MAX_PWM)
-            duty_front_right = int(front_right * MAX_PWM)
-            duty_back_left = int(back_left * MAX_PWM)
-            duty_back_right = int(back_right * MAX_PWM)
+                    elif event.type == pygame.JOYHATMOTION:
+                        hat = event.hat
+                        value = event.value
+                        print(f"Hat {hat} moved. Value: {value}")
 
-            # PWM値を表示
-            print(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+                # Get joystick axes for movement
+                left_horizontal = joystick.get_axis(0)  # Left stick X-axis
+                left_vertical = joystick.get_axis(1)    # Left stick Y-axis
 
-            # モーターに指令値を送信
-            motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+                # Get joystick axes for rotation
+                right_horizontal = joystick.get_axis(3)  # Right stick X-axis
+                # right_vertical = joystick.get_axis(4)    # Right stick Y-axis (unused)
 
-            # サーボ制御用のジョイスティックボタンをチェック
-            # 以下は例として、ボタンが押されたときにサーボを動かす方法です。
-            # すでにJOYBUTTONDOWNイベントで処理しているため、必要に応じて追加処理を行ってください。
+                # Display raw axes values
+                raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+                print(f"Raw axes: {raw_axes}")
 
-            # サーボ制御の他の方法が必要な場合は、ここに追加できます。
+                # Apply dead zones
+                if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                    left_horizontal = 0
+                if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
+                    left_vertical = 0
+                if abs(right_horizontal) < DEAD_ZONE_ROTATION:
+                    right_horizontal = 0
+                # if abs(right_vertical) < DEAD_ZONE_ROTATION:
+                #     right_vertical = 0
 
-            # 待機時間
-            time.sleep(0.05)
+                # Calculate movement direction
+                y = -left_vertical
+                x = left_horizontal
 
-    except KeyboardInterrupt:
-        print("\nプログラムを終了します。")
-        # モーターを停止
-        motor.setMotorModel(0, 0, 0, 0)
-        # サーボを中立位置にリセット
-        pwm_servo.setServoPwm(servo_channel_neck, 90)
-        pwm_servo.setServoPwm(servo_channel_left_right, 90)
-        sys.exit()
+                # Calculate rotation
+                rotation = right_horizontal  # Use right stick X-axis for rotation
 
-if __name__ == "__main__":
-    print('プログラムを開始します...')
+                # Adjust rotation strength
+                rotation_strength = rotation * 0.5  # Scale rotation
+
+                # Calculate motor commands
+                front_left = y + x + rotation_strength
+                front_right = y - x - rotation_strength
+                back_left = y - x + rotation_strength
+                back_right = y + x - rotation_strength
+
+                # Normalize motor commands to range [-1, 1]
+                max_val = max(abs(front_left), abs(front_right), abs(back_left), abs(back_right), 1)
+                front_left /= max_val
+                front_right /= max_val
+                back_left /= max_val
+                back_right /= max_val
+
+                # Convert to PWM values (-4095 to 4095)
+                duty_front_left = int(front_left * MAX_PWM)
+                duty_front_right = int(front_right * MAX_PWM)
+                duty_back_left = int(back_left * MAX_PWM)
+                duty_back_right = int(back_right * MAX_PWM)
+
+                # Display PWM values
+                print(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+
+                # Send PWM values to motors
+                motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+
+                # Wait for a short period
+                time.sleep(0.05)
+
+        except KeyboardInterrupt:
+            print("\nExiting program.")
+            # Stop motors
+            motor.setMotorModel(0, 0, 0, 0)
+            # Reset servos to neutral positions
+            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+            sys.exit()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        pygame.quit()
+
+# Main program logic:
+if __name__ == '__main__':
+
+    print('Program is starting...')
     if len(sys.argv) < 2:
-        print("パラメータエラー: デバイスを指定してください")
-        print("使用可能なデバイス: Led, Motor, Ultrasonic, Infrared, Servo, ADC, Buzzer, Rotate, Neck, Joystick")
+        print("Parameter error: Please assign the device")
+        print("Available devices: Led, Motor, Ultrasonic, Infrared, Servo, ADC, Buzzer, Rotate, Neck, Joystick")
         sys.exit()
 
     device = sys.argv[1]
 
     if device == 'Led':
-        test_Led()
+        # Ensure you have a test_Led function defined
+        try:
+            from Led import *
+            test_Led()
+        except ImportError:
+            print("Led module not found.")
     elif device == 'Motor':
         test_Motor()
     elif device == 'Ultrasonic':
@@ -366,7 +397,7 @@ if __name__ == "__main__":
     elif device == 'Neck':
         control_Neck_With_Pygame()
     elif device == 'Joystick':
-        main()
+        joystick_Control()
     else:
-        print(f"不明なデバイス: {device}")
-        print("使用可能なデバイス: Led, Motor, Ultrasonic, Infrared, Servo, ADC, Buzzer, Rotate, Neck, Joystick")
+        print(f"Unknown device: {device}")
+        print("Available devices: Led, Motor, Ultrasonic, Infrared, Servo, ADC, Buzzer, Rotate, Neck, Joystick")
