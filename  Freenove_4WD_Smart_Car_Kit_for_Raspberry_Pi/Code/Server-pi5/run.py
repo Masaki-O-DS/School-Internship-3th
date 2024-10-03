@@ -193,7 +193,7 @@ def test_Buzzer():
 def control_Neck_With_Pygame():
     """
     Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
-    Up Arrow: Move neck up (maximum 50 degrees from neutral)
+    Up Arrow: Move neck up (maximum 90 degrees from neutral)
     Down Arrow: No action
     Press Esc or close the window to exit
     """
@@ -209,10 +209,11 @@ def control_Neck_With_Pygame():
         servo_channel = '0'  # Assuming Servo 0 controls the neck
         neutral_position = 90  # Neutral position
         position = neutral_position  # Starting at neutral position
-        max_up_angle = 50  # Maximum upward angle from neutral
+        max_up_angle = 90  # Maximum upward angle from neutral
+        min_position = 0  # Minimum servo position
 
         # Define movement increment
-        increment = 5
+        increment = 10
 
         running = True
         while running:
@@ -224,7 +225,7 @@ def control_Neck_With_Pygame():
                         running = False
                     elif event.key == pygame.K_UP:
                         new_position = position - increment  # Subtract to move up
-                        if new_position >= neutral_position - max_up_angle:
+                        if new_position >= min_position:
                             position = new_position
                             pwm_servo.setServoPwm(servo_channel, position)
                             print(f"Neck moved up to {position} degrees")
