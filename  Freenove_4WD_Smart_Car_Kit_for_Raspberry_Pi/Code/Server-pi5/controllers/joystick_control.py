@@ -58,9 +58,9 @@ def joystick_control():
 
         # Define servo angles within 0° to 180°
         SERVO_NECK_UP = 180                # Move neck up
-        SERVO_NECK_DOWN = 60               # Move neck down
-        SERVO_LEFT = 30                   # Move Servo1 to the left
-        SERVO_RIGHT = 170                  # Move Servo1 to the right
+        SERVO_NECK_DOWN = 120               # Move neck down
+        SERVO_LEFT = 90                   # Move Servo1 to the left
+        SERVO_RIGHT = 90                  # Move Servo1 to the right
         SERVO_NECK_NEUTRAL = 90            # Neutral position for neck servo
         SERVO_LEFT_RIGHT_NEUTRAL = 90      # Neutral position for Servo1
 
