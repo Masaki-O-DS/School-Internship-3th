@@ -12,11 +12,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(me
 
 def joystick_control():
     """
-    Controls the car and servos using a joystick.
+    Controls the car and Servo0 (neck) using a joystick.
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
-    L2 Button (Button 6): Move Servo1 to the left
-    R2 Button (Button 7): Move Servo1 to the right
     """
     try:
         # Initialize hardware components
@@ -36,6 +34,7 @@ def joystick_control():
         if joystick_count > 0:
             joystick = pygame.joystick.Joystick(0)
             joystick.init()
+            # Optionally, log joystick details
             # logging.info(f"Joystick name: {joystick.get_name()}")
             # logging.info(f"Number of axes: {joystick.get_numaxes()}")
             # logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
@@ -52,22 +51,17 @@ def joystick_control():
         # Maximum PWM value
         MAX_PWM = 4095
 
-        # Define servo channels
+        # Define servo channel
         SERVO_NECK_CHANNEL = '0'          # Servo0: neck up/down
-        SERVO_LEFT_RIGHT_CHANNEL = '1'    # Servo1: left/right
 
         # Define servo angles within 0° to 180°
         SERVO_NECK_UP = 180                # Move neck up
-        SERVO_NECK_DOWN = 120               # Move neck down
-        SERVO_LEFT = 90                   # Move Servo1 to the left
-        SERVO_RIGHT = 90                  # Move Servo1 to the right
+        SERVO_NECK_DOWN = 120              # Move neck down
         SERVO_NECK_NEUTRAL = 90            # Neutral position for neck servo
-        SERVO_LEFT_RIGHT_NEUTRAL = 90      # Neutral position for Servo1
 
-        # Set servos to neutral position at start
+        # Set servo to neutral position at start
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
-        logging.info("Servos set to neutral positions.")
+        logging.info("Servo0 set to neutral position.")
 
         while True:
             for event in pygame.event.get():
@@ -85,23 +79,13 @@ def joystick_control():
                     elif button == 5:  # R1 Trigger
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
                         logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
-                    elif button == 6:  # L2 Button
-                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT)
-                        logging.info(f"Servo1 moved to the left to {SERVO_LEFT} degrees.")
-                    elif button == 7:  # R2 Button
-                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_RIGHT)
-                        logging.info(f"Servo1 moved to the right to {SERVO_RIGHT} degrees.")
 
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
-                    # logging.info(f"Button {button} released.")
-                    # Reset servos to neutral when buttons are released
+                    # Reset Servo0 to neutral when buttons are released
                     if button in [4, 5]:  # Servo0 buttons
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-                        # logging.info("Servo0 reset to neutral.")
-                    if button in [6, 7]:  # Servo1 buttons
-                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
-                        # logging.info("Servo1 reset to neutral.")
+                        logging.info("Servo0 reset to neutral position.")
 
                 elif event.type == pygame.JOYHATMOTION:
                     hat = event.hat
@@ -171,12 +155,11 @@ def joystick_control():
         try:
             # Stop motors
             motor.setMotorModel(0, 0, 0, 0)
-            # Reset servos to neutral positions
+            # Reset servo to neutral position
             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-            servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
-            logging.info("Motors stopped and servos reset to neutral positions.")
+            logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:
-            logging.error(f"Error while stopping motors or resetting servos: {e}")
+            logging.error(f"Error while stopping motors or resetting servo: {e}")
         finally:
             pygame.quit()
         sys.exit()
