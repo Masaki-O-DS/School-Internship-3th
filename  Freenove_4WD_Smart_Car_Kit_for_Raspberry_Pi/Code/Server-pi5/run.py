@@ -81,7 +81,7 @@ def test_Infrared():
 def test_Servo():
     try:
         while True:
-            for i in range(50, 110, 1):
+            for i in range(10, 110, 1):
                 pwm_servo.setServoPwm('0', i)
                 print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
