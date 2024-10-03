@@ -4,11 +4,7 @@ import time
 import sys
 import pygame
 from Motor import Motor
-from Ultrasonic import Ultrasonic
-from Line_Tracking import Line_Tracking
 from servo import Servo
-from ADC import Adc
-from Buzzer import Buzzer
 
 def joystick_control():
     """
@@ -21,11 +17,7 @@ def joystick_control():
     try:
         # ハードウェアコンポーネントの初期化
         motor = Motor()
-        ultrasonic = Ultrasonic()
-        line_tracking = Line_Tracking()
         servo = Servo()
-        adc = Adc()
-        buzzer = Buzzer()
 
         # Pygameの初期化
         pygame.init()
@@ -58,19 +50,19 @@ def joystick_control():
 
         # サーボチャンネルの定義
         SERVO_NECK_CHANNEL = '0'          # サーボ0: 首の上下
-        SERVO_UP_DOWN_CHANNEL = '1'    # サーボ1: 左右
+        SERVO_LEFT_RIGHT_CHANNEL = '1'    # サーボ1: 左右
 
         # サーボ角度の定義
-        SERVO_NECK_RIGHT = 180                # 首を右に動かす角度 
-        SERVO_NECK_LEFT = 20               # 首を左に動かす角度
-        SERVO_DOWN = 120                     # サーボ1を下に動かす角度
-        SERVO_UP = 180                  # サーボ1を上に動かす角度
+        SERVO_NECK_UP = 180                # 首を上に動かす角度 
+        SERVO_NECK_DOWN = 60               # 首を下に動かす角度
+        SERVO_LEFT = 15                     # サーボ1を左に動かす角度
+        SERVO_RIGHT = 120                  # サーボ1を右に動かす角度
         SERVO_NECK_NEUTRAL = 90            # 首の中立位置
-        SERVO_UP_DOWN_NEUTRAL = 90      # サーボ1の中立位置
+        SERVO_LEFT_RIGHT_NEUTRAL = 90      # サーボ1の中立位置
 
         # プログラム開始時にサーボを中立位置に設定
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-        servo.setServoPwm(SERVO_UP_DOWN_CHANNEL, SERVO_UP_DOWN_NEUTRAL)
+        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
         print("サーボを中立位置に設定しました。")
 
         while True:
@@ -84,17 +76,17 @@ def joystick_control():
 
                     # Xboxコントローラーのボタンマッピング（コントローラーによって異なる場合があります）
                     if button == 4:  # L1 Trigger
-                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_LEFT)
-                        print(f"サーボ0を下に {SERVO_NECK_LEFT} 度動かしました。")
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
+                        print(f"サーボ0を下に {SERVO_NECK_DOWN} 度動かしました。")
                     elif button == 5:  # R1 Trigger
-                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_RIGHT)
-                        print(f"サーボ0を上に {SERVO_NECK_RIGHT} 度動かしました。")
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
+                        print(f"サーボ0を上に {SERVO_NECK_UP} 度動かしました。")
                     elif button == 6:  # L2 Button
-                        servo.setServoPwm(SERVO_UP_DOWN_CHANNEL, SERVO_DOWN)
-                        print(f"サーボ1を左に {SERVO_DOWN} 度動かしました。")
+                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT)
+                        print(f"サーボ1を左に {SERVO_LEFT} 度動かしました。")
                     elif button == 7:  # R2 Button
-                        servo.setServoPwm(SERVO_UP_DOWN_CHANNEL, SERVO_UP)
-                        print(f"サーボ1を右に {SERVO_UP} 度動かしました。")
+                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_RIGHT)
+                        print(f"サーボ1を右に {SERVO_RIGHT} 度動かしました。")
 
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
@@ -104,7 +96,7 @@ def joystick_control():
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
                         print("サーボ0を中立位置にリセットしました。")
                     if button in [6, 7]:  # サーボ1のボタン
-                        servo.setServoPwm(SERVO_UP_DOWN_CHANNEL, SERVO_UP_DOWN_NEUTRAL)
+                        servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
                         print("サーボ1を中立位置にリセットしました。")
 
                 elif event.type == pygame.JOYHATMOTION:
@@ -177,7 +169,7 @@ def joystick_control():
             motor.setMotorModel(0, 0, 0, 0)
             # サーボを中立位置にリセット
             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-            servo.setServoPwm(SERVO_UP_DOWN_CHANNEL, SERVO_UP_DOWN_NEUTRAL)
+            servo.setServoPwm(SERVO_LEFT_RIGHT_CHANNEL, SERVO_LEFT_RIGHT_NEUTRAL)
         except Exception as e:
             print(f"モーター停止またはサーボリセット中にエラーが発生しました: {e}")
         finally:
