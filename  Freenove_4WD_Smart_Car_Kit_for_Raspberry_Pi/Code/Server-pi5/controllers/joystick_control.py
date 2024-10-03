@@ -1,3 +1,4 @@
+
 # controllers/joystick_control.py
 
 import time
@@ -16,6 +17,7 @@ def joystick_control():
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
     """
+
     try:
         # Initialize hardware components
         motor = Motor()
@@ -34,11 +36,10 @@ def joystick_control():
         if joystick_count > 0:
             joystick = pygame.joystick.Joystick(0)
             joystick.init()
-            # Optionally, log joystick details
-            # logging.info(f"Joystick name: {joystick.get_name()}")
-            # logging.info(f"Number of axes: {joystick.get_numaxes()}")
-            # logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
-            # logging.info(f"Number of hats: {joystick.get_numhats()}")
+            logging.info(f"Joystick name: {joystick.get_name()}")
+            logging.info(f"Number of axes: {joystick.get_numaxes()}")
+            logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
+            logging.info(f"Number of hats: {joystick.get_numhats()}")
         else:
             logging.error("No joysticks connected. Exiting program.")
             pygame.quit()
@@ -46,7 +47,6 @@ def joystick_control():
 
         # Define dead zones
         DEAD_ZONE_MOVEMENT = 0.2
-        DEAD_ZONE_ROTATION = 0.2
 
         # Maximum PWM value
         MAX_PWM = 4095
@@ -93,53 +93,27 @@ def joystick_control():
                     logging.info(f"Hat {hat} moved. Value: {value}")
 
             # Get joystick axes
-            left_horizontal = joystick.get_axis(0)  # Left stick X-axis
             left_vertical = joystick.get_axis(1)    # Left stick Y-axis
-
-            # Get rotation axes from right stick
-            right_horizontal = joystick.get_axis(3)  # Right stick X-axis
-            # right_vertical = joystick.get_axis(4)    # Right stick Y-axis (unused)
 
             # Display raw axis values
             raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
             logging.info(f"Raw axes: {raw_axes}")
 
-            # Apply dead zones
-            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
-                left_horizontal = 0
+            # Apply dead zone
             if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
                 left_vertical = 0
-            if abs(right_horizontal) < DEAD_ZONE_ROTATION:
-                right_horizontal = 0
 
             # Calculate movement direction
-            y = -left_vertical
-            x = left_horizontal
-
-            # Calculate rotation
-            rotation = right_horizontal  # Use right stick X-axis for rotation
-
-            # Adjust rotation strength
-            rotation_strength = rotation * 0.5  # Scale rotation
-
-            # Calculate motor commands
-            front_left = y + x + rotation_strength
-            front_right = y - x - rotation_strength
-            back_left = y - x + rotation_strength
-            back_right = y + x - rotation_strength
-
-            # Normalize motor commands to range [-1, 1]
-            max_val = max(abs(front_left), abs(front_right), abs(back_left), abs(back_right), 1)
-            front_left /= max_val
-            front_right /= max_val
-            back_left /= max_val
-            back_right /= max_val
+            y = -left_vertical  # Invert axis for intuitive control
 
             # Convert to PWM values (-4095 to 4095)
-            duty_front_left = int(front_left * MAX_PWM)
-            duty_front_right = int(front_right * MAX_PWM)
-            duty_back_left = int(back_left * MAX_PWM)
-            duty_back_right = int(back_right * MAX_PWM)
+            duty = int(y * MAX_PWM)
+
+            # Set all motors to the same PWM value for forward/backward movement
+            duty_front_left = duty
+            duty_front_right = duty
+            duty_back_left = duty
+            duty_back_right = duty
 
             # Display PWM values
             logging.info(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
@@ -147,7 +121,7 @@ def joystick_control():
             # Send PWM values to motors
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # Short wait
+            # Short wait to prevent excessive CPU usage
             time.sleep(0.05)
 
     except KeyboardInterrupt:
