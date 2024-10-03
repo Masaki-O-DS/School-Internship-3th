@@ -190,8 +190,6 @@ def control_Neck_With_Pygame():
     finally:
         pygame.quit()
 
-
-
 def joystick_Control():
     """
     Controls the car and servos using a joystick.
@@ -238,9 +236,9 @@ def joystick_Control():
         servo_channel_left_right = '1'    # Servo 1 controls left/right
 
         # Define servo angles
-        SERVO_NECK_UP = 180                # Increased upward angle
+        SERVO_NECK_UP = 175                # Adjusted upward angle based on servo capability
         SERVO_NECK_DOWN = 60               # Downward angle
-        SERVO_LEFT = 15                    # Further left position for Servo 1
+        SERVO_LEFT = 10                    # Further left position for Servo 1
         SERVO_RIGHT = 120                  # Right position for Servo 1
         SERVO_NECK_NEUTRAL = 90            # Neutral position for Servo 0
         SERVO_LEFT_RIGHT_NEUTRAL = 90      # Neutral position for Servo 1
@@ -250,119 +248,123 @@ def joystick_Control():
         pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
         print("Servos set to neutral positions.")
 
-        try:
-            while True:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        raise KeyboardInterrupt  # Exit the loop
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    raise KeyboardInterrupt  # Exit the loop
 
-                    elif event.type == pygame.JOYBUTTONDOWN:
-                        button = event.button
-                        print(f"Button {button} pressed.")
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    button = event.button
+                    print(f"Button {button} pressed.")
 
-                        # Xbox Controller Button Mapping (may vary)
-                        if button == 4:  # L1 Trigger
-                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_DOWN)
-                            print("Servo 0 moved down.")
-                        elif button == 5:  # R1 Trigger
-                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_UP)
-                            print("Servo 0 moved up.")
-                        elif button == 6:  # L2 Button
-                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT)
-                            print("Servo 1 moved to the left.")
-                        elif button == 7:  # R2 Button
-                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_RIGHT)
-                            print("Servo 1 moved to the right.")
+                    # Xbox Controller Button Mapping (may vary)
+                    if button == 4:  # L1 Trigger
+                        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_DOWN)
+                        print(f"Servo 0 moved down to {SERVO_NECK_DOWN} degrees.")
+                    elif button == 5:  # R1 Trigger
+                        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_UP)
+                        print(f"Servo 0 moved up to {SERVO_NECK_UP} degrees.")
+                    elif button == 6:  # L2 Button
+                        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT)
+                        print(f"Servo 1 moved to the left to {SERVO_LEFT} degrees.")
+                    elif button == 7:  # R2 Button
+                        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_RIGHT)
+                        print(f"Servo 1 moved to the right to {SERVO_RIGHT} degrees.")
 
-                    elif event.type == pygame.JOYBUTTONUP:
-                        button = event.button
-                        print(f"Button {button} released.")
-                        # Reset servos to neutral when buttons are released
-                        if button == 4:  # L1 Trigger released
-                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
-                            print("Servo 0 reset to neutral.")
-                        elif button == 5:  # R1 Trigger released
-                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
-                            print("Servo 0 reset to neutral.")
-                        elif button == 6:  # L2 Button released
-                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
-                            print("Servo 1 reset to neutral.")
-                        elif button == 7:  # R2 Button released
-                            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
-                            print("Servo 1 reset to neutral.")
+                elif event.type == pygame.JOYBUTTONUP:
+                    button = event.button
+                    print(f"Button {button} released.")
+                    # Reset servos to neutral when buttons are released
+                    if button == 4:  # L1 Trigger released
+                        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+                        print("Servo 0 reset to neutral.")
+                    elif button == 5:  # R1 Trigger released
+                        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+                        print("Servo 0 reset to neutral.")
+                    elif button == 6:  # L2 Button released
+                        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+                        print("Servo 1 reset to neutral.")
+                    elif button == 7:  # R2 Button released
+                        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+                        print("Servo 1 reset to neutral.")
 
-                    elif event.type == pygame.JOYHATMOTION:
-                        hat = event.hat
-                        value = event.value
-                        print(f"Hat {hat} moved. Value: {value}")
+                elif event.type == pygame.JOYHATMOTION:
+                    hat = event.hat
+                    value = event.value
+                    print(f"Hat {hat} moved. Value: {value}")
 
-                # Get joystick axes for movement
-                left_horizontal = joystick.get_axis(0)  # Left stick X-axis
-                left_vertical = joystick.get_axis(1)    # Left stick Y-axis
+            # Get joystick axes for movement
+            left_horizontal = joystick.get_axis(0)  # Left stick X-axis
+            left_vertical = joystick.get_axis(1)    # Left stick Y-axis
 
-                # Get joystick axes for rotation
-                right_horizontal = joystick.get_axis(3)  # Right stick X-axis
-                # right_vertical = joystick.get_axis(4)    # Right stick Y-axis (unused)
+            # Get joystick axes for rotation
+            right_horizontal = joystick.get_axis(3)  # Right stick X-axis
+            # right_vertical = joystick.get_axis(4)    # Right stick Y-axis (unused)
 
-                # Display raw axes values
-                raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
-                print(f"Raw axes: {raw_axes}")
+            # Display raw axes values
+            raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+            print(f"Raw axes: {raw_axes}")
 
-                # Apply dead zones
-                if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
-                    left_horizontal = 0
-                if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
-                    left_vertical = 0
-                if abs(right_horizontal) < DEAD_ZONE_ROTATION:
-                    right_horizontal = 0
-                # if abs(right_vertical) < DEAD_ZONE_ROTATION:
-                #     right_vertical = 0
+            # Apply dead zones
+            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                left_horizontal = 0
+            if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
+                left_vertical = 0
+            if abs(right_horizontal) < DEAD_ZONE_ROTATION:
+                right_horizontal = 0
+            # if abs(right_vertical) < DEAD_ZONE_ROTATION:
+            #     right_vertical = 0
 
-                # Calculate movement direction
-                y = -left_vertical
-                x = left_horizontal
+            # Calculate movement direction
+            y = -left_vertical
+            x = left_horizontal
 
-                # Calculate rotation
-                rotation = right_horizontal  # Use right stick X-axis for rotation
+            # Calculate rotation
+            rotation = right_horizontal  # Use right stick X-axis for rotation
 
-                # Adjust rotation strength
-                rotation_strength = rotation * 0.5  # Scale rotation
+            # Adjust rotation strength
+            rotation_strength = rotation * 0.5  # Scale rotation
 
-                # Calculate motor commands
-                front_left = y + x + rotation_strength
-                front_right = y - x - rotation_strength
-                back_left = y - x + rotation_strength
-                back_right = y + x - rotation_strength
+            # Calculate motor commands
+            front_left = y + x + rotation_strength
+            front_right = y - x - rotation_strength
+            back_left = y - x + rotation_strength
+            back_right = y + x - rotation_strength
 
-                # Normalize motor commands to range [-1, 1]
-                max_val = max(abs(front_left), abs(front_right), abs(back_left), abs(back_right), 1)
-                front_left /= max_val
-                front_right /= max_val
-                back_left /= max_val
-                back_right /= max_val
+            # Normalize motor commands to range [-1, 1]
+            max_val = max(abs(front_left), abs(front_right), abs(back_left), abs(back_right), 1)
+            front_left /= max_val
+            front_right /= max_val
+            back_left /= max_val
+            back_right /= max_val
 
-                # Convert to PWM values (-4095 to 4095)
-                duty_front_left = int(front_left * MAX_PWM)
-                duty_front_right = int(front_right * MAX_PWM)
-                duty_back_left = int(back_left * MAX_PWM)
-                duty_back_right = int(back_right * MAX_PWM)
+            # Convert to PWM values (-4095 to 4095)
+            duty_front_left = int(front_left * MAX_PWM)
+            duty_front_right = int(front_right * MAX_PWM)
+            duty_back_left = int(back_left * MAX_PWM)
+            duty_back_right = int(back_right * MAX_PWM)
 
-                # Display PWM values
-                print(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+            # Display PWM values
+            print(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
-                # Send PWM values to motors
-                motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+            # Send PWM values to motors
+            motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-                # Wait for a short period
-                time.sleep(0.05)
+            # Wait for a short period
+            time.sleep(0.05)
 
     except KeyboardInterrupt:
         print("\nExiting program.")
-        # Stop motors
-        motor.setMotorModel(0, 0, 0, 0)
-        # Reset servos to neutral positions
-        pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
-        pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+        try:
+            # Stop motors
+            motor.setMotorModel(0, 0, 0, 0)
+            # Reset servos to neutral positions
+            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+            pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
+        except Exception as e:
+            print(f"An error occurred while stopping motors or resetting servos: {e}")
+        finally:
+            pygame.quit()
         sys.exit()
 
     except Exception as e:
