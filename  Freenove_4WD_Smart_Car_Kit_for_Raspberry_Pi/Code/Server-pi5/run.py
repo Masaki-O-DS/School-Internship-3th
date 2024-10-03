@@ -131,11 +131,70 @@ def test_Buzzer():
         buzzer.run('0')
         print("\nEnd of program")
            
+# def control_Neck_With_Pygame():
+#     """
+#     Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
+#     Up Arrow: Move neck up
+#     Down Arrow: Move neck down
+#     Press Esc or close the window to exit
+#     """
+#     try:
+#         # Initialize Pygame
+#         pygame.init()
+#         screen = pygame.display.set_mode((400, 300))
+#         pygame.display.set_caption('Neck Control')
+#         font = pygame.font.Font(None, 36)
+#         clock = pygame.time.Clock()
+
+#         # Initial servo position
+#         servo_channel = '0'  # Assuming Servo 0 controls the neck
+#         position = 90  # Starting at neutral position
+
+#         # Define movement increment
+#         increment = 20
+
+#         running = True
+#         while running:
+#             for event in pygame.event.get():
+#                 if event.type == pygame.QUIT:
+#                     running = False
+#                 elif event.type == pygame.KEYDOWN:
+#                     if event.key == pygame.K_ESCAPE:
+#                         running = False
+#                     elif event.key == pygame.K_UP:
+#                         position += increment
+#                         if position > 180:
+#                             position = 180
+#                         pwm_servo.setServoPwm(servo_channel, position)
+#                         print(f"Neck moved up to {position} degrees")
+#                     elif event.key == pygame.K_DOWN:
+#                         position -= increment
+#                         if position < 0:
+#                             position = 0
+#                         pwm_servo.setServoPwm(servo_channel, position)
+#                         print(f"Neck moved down to {position} degrees")
+
+#             # Update the Pygame window
+#             screen.fill((255, 255, 255))
+#             text = font.render(f"Neck Position: {position}°", True, (0, 0, 0))
+#             screen.blit(text, (50, 130))
+#             pygame.display.flip()
+#             clock.tick(30)
+
+#         # Reset servo to neutral position on exit
+#         pwm_servo.setServoPwm(servo_channel, 90)
+#         print("Neck reset to 90 degrees. Exiting...")
+
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+#     finally:
+#         pygame.quit()
+
 def control_Neck_With_Pygame():
     """
     Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
-    Up Arrow: Move neck up
-    Down Arrow: Move neck down
+    Up Arrow: Move neck up (maximum 50 degrees from neutral)
+    Down Arrow: No action
     Press Esc or close the window to exit
     """
     try:
@@ -148,10 +207,12 @@ def control_Neck_With_Pygame():
 
         # Initial servo position
         servo_channel = '0'  # Assuming Servo 0 controls the neck
-        position = 90  # Starting at neutral position
+        neutral_position = 90  # Neutral position
+        position = neutral_position  # Starting at neutral position
+        max_up_angle = 50  # Maximum upward angle from neutral
 
         # Define movement increment
-        increment = 20
+        increment = 5
 
         running = True
         while running:
@@ -162,17 +223,12 @@ def control_Neck_With_Pygame():
                     if event.key == pygame.K_ESCAPE:
                         running = False
                     elif event.key == pygame.K_UP:
-                        position += increment
-                        if position > 180:
-                            position = 180
-                        pwm_servo.setServoPwm(servo_channel, position)
-                        print(f"Neck moved up to {position} degrees")
-                    elif event.key == pygame.K_DOWN:
-                        position -= increment
-                        if position < 0:
-                            position = 0
-                        pwm_servo.setServoPwm(servo_channel, position)
-                        print(f"Neck moved down to {position} degrees")
+                        new_position = position - increment  # Subtract to move up
+                        if new_position >= neutral_position - max_up_angle:
+                            position = new_position
+                            pwm_servo.setServoPwm(servo_channel, position)
+                            print(f"Neck moved up to {position} degrees")
+                    # Down arrow key is ignored
 
             # Update the Pygame window
             screen.fill((255, 255, 255))
@@ -182,8 +238,8 @@ def control_Neck_With_Pygame():
             clock.tick(30)
 
         # Reset servo to neutral position on exit
-        pwm_servo.setServoPwm(servo_channel, 90)
-        print("Neck reset to 90 degrees. Exiting...")
+        pwm_servo.setServoPwm(servo_channel, neutral_position)
+        print(f"Neck reset to {neutral_position} degrees. Exiting...")
 
     except Exception as e:
         print(f"An error occurred: {e}")
