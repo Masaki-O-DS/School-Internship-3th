@@ -77,22 +77,27 @@ pwm=Servo()
 def test_Servo():
     try:
         while True:
-            for i in range(50,110,1):
-                pwm.setServoPwm('0',i)
+            for i in range(50, 110, 1):
+                pwm.setServoPwm('0', i)
+                print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
-            for i in range(110,50,-1):
-                pwm.setServoPwm('0',i)
+            for i in range(110, 50, -1):
+                pwm.setServoPwm('0', i)
+                print(f"Servo 0 set to {i} degrees")
                 time.sleep(0.01)
-            for i in range(80,150,1):
-                pwm.setServoPwm('1',i)
+            for i in range(80, 150, 1):
+                pwm.setServoPwm('1', i)
+                print(f"Servo 1 set to {i} degrees")
                 time.sleep(0.01)
-            for i in range(150,80,-1):
-                pwm.setServoPwm('1',i)
+            for i in range(150, 80, -1):
+                pwm.setServoPwm('1', i)
+                print(f"Servo 1 set to {i} degrees")
                 time.sleep(0.01)   
     except KeyboardInterrupt:
-        pwm.setServoPwm('0',90)
-        pwm.setServoPwm('1',90)
+        pwm.setServoPwm('0', 90)
+        pwm.setServoPwm('1', 90)
         print ("\nEnd of program")
+
         
         
 from ADC import *
