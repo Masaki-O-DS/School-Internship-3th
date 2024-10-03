@@ -53,7 +53,7 @@ def joystick_control():
         SERVO_LEFT_RIGHT_CHANNEL = '1'    # Servo1: left/right
 
         # Define servo angles
-        SERVO_NECK_UP = 180                # Move neck up
+        SERVO_NECK_UP = 250                # Move neck up
         SERVO_NECK_DOWN = 60               # Move neck down
         SERVO_LEFT = 15                     # Move Servo1 to the left
         SERVO_RIGHT = 120                  # Move Servo1 to the right
