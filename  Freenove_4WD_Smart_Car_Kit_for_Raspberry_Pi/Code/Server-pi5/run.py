@@ -131,70 +131,11 @@ def test_Buzzer():
         buzzer.run('0')
         print("\nEnd of program")
            
-# def control_Neck_With_Pygame():
-#     """
-#     Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
-#     Up Arrow: Move neck up
-#     Down Arrow: Move neck down
-#     Press Esc or close the window to exit
-#     """
-#     try:
-#         # Initialize Pygame
-#         pygame.init()
-#         screen = pygame.display.set_mode((400, 300))
-#         pygame.display.set_caption('Neck Control')
-#         font = pygame.font.Font(None, 36)
-#         clock = pygame.time.Clock()
-
-#         # Initial servo position
-#         servo_channel = '0'  # Assuming Servo 0 controls the neck
-#         position = 90  # Starting at neutral position
-
-#         # Define movement increment
-#         increment = 20
-
-#         running = True
-#         while running:
-#             for event in pygame.event.get():
-#                 if event.type == pygame.QUIT:
-#                     running = False
-#                 elif event.type == pygame.KEYDOWN:
-#                     if event.key == pygame.K_ESCAPE:
-#                         running = False
-#                     elif event.key == pygame.K_UP:
-#                         position += increment
-#                         if position > 180:
-#                             position = 180
-#                         pwm_servo.setServoPwm(servo_channel, position)
-#                         print(f"Neck moved up to {position} degrees")
-#                     elif event.key == pygame.K_DOWN:
-#                         position -= increment
-#                         if position < 0:
-#                             position = 0
-#                         pwm_servo.setServoPwm(servo_channel, position)
-#                         print(f"Neck moved down to {position} degrees")
-
-#             # Update the Pygame window
-#             screen.fill((255, 255, 255))
-#             text = font.render(f"Neck Position: {position}°", True, (0, 0, 0))
-#             screen.blit(text, (50, 130))
-#             pygame.display.flip()
-#             clock.tick(30)
-
-#         # Reset servo to neutral position on exit
-#         pwm_servo.setServoPwm(servo_channel, 90)
-#         print("Neck reset to 90 degrees. Exiting...")
-
-#     except Exception as e:
-#         print(f"An error occurred: {e}")
-#     finally:
-#         pygame.quit()
-
 def control_Neck_With_Pygame():
     """
     Controls the neck servo (assumed to be Servo 0) using Pygame keyboard inputs.
-    Up Arrow: Move neck up (maximum 90 degrees from neutral)
-    Down Arrow: No action
+    Up Arrow: Move neck up
+    Down Arrow: Move neck down
     Press Esc or close the window to exit
     """
     try:
@@ -207,13 +148,10 @@ def control_Neck_With_Pygame():
 
         # Initial servo position
         servo_channel = '0'  # Assuming Servo 0 controls the neck
-        neutral_position = 90  # Neutral position
-        position = neutral_position  # Starting at neutral position
-        max_up_angle = 90  # Maximum upward angle from neutral
-        min_position = 0  # Minimum servo position
+        position = 90  # Starting at neutral position
 
         # Define movement increment
-        increment = 10
+        increment = 20
 
         running = True
         while running:
@@ -224,12 +162,17 @@ def control_Neck_With_Pygame():
                     if event.key == pygame.K_ESCAPE:
                         running = False
                     elif event.key == pygame.K_UP:
-                        new_position = position - increment  # Subtract to move up
-                        if new_position >= min_position:
-                            position = new_position
-                            pwm_servo.setServoPwm(servo_channel, position)
-                            print(f"Neck moved up to {position} degrees")
-                    # Down arrow key is ignored
+                        position += increment
+                        if position > 180:
+                            position = 180
+                        pwm_servo.setServoPwm(servo_channel, position)
+                        print(f"Neck moved up to {position} degrees")
+                    elif event.key == pygame.K_DOWN:
+                        position -= increment
+                        if position < 0:
+                            position = 0
+                        pwm_servo.setServoPwm(servo_channel, position)
+                        print(f"Neck moved down to {position} degrees")
 
             # Update the Pygame window
             screen.fill((255, 255, 255))
@@ -239,8 +182,8 @@ def control_Neck_With_Pygame():
             clock.tick(30)
 
         # Reset servo to neutral position on exit
-        pwm_servo.setServoPwm(servo_channel, neutral_position)
-        print(f"Neck reset to {neutral_position} degrees. Exiting...")
+        pwm_servo.setServoPwm(servo_channel, 90)
+        print("Neck reset to 90 degrees. Exiting...")
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -250,7 +193,6 @@ def control_Neck_With_Pygame():
 def joystick_Control():
     """
     Controls the car and servos using a joystick.
-    L1 Trigger: Move Servo 0 downward
     R1 Trigger: Move Servo 0 upward
     L2 Button: Move Servo 1 to the left
     R2 Button: Move Servo 1 to the right
@@ -289,16 +231,15 @@ def joystick_Control():
         MAX_PWM = 4095
 
         # Define servo channels
-        servo_channel_neck = '0'      # Servo 0 controls neck up/down
-        servo_channel_left_right = '1'  # Servo 1 controls left/right
+        servo_channel_neck = '0'         # Servo 0 controls neck up/down
+        servo_channel_left_right = '1'    # Servo 1 controls left/right
 
         # Define servo angles
-        SERVO_NECK_UP = 120
-        SERVO_NECK_DOWN = 60
-        SERVO_LEFT = 60
-        SERVO_RIGHT = 120
-        SERVO_NECK_NEUTRAL = 90
-        SERVO_LEFT_RIGHT_NEUTRAL = 90
+        SERVO_NECK_UP = 150               # Increased upward angle
+        SERVO_NECK_NEUTRAL = 90           # Neutral position
+        SERVO_LEFT = 60                    # Left position for Servo 1
+        SERVO_RIGHT = 120                  # Right position for Servo 1
+        SERVO_LEFT_RIGHT_NEUTRAL = 90     # Neutral position for Servo 1
 
         # Set servos to neutral position at start
         pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
@@ -316,10 +257,7 @@ def joystick_Control():
                         print(f"Button {button} pressed.")
 
                         # Xbox Controller Button Mapping (may vary)
-                        if button == 4:  # L1 Trigger
-                            pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_DOWN)
-                            print("Servo 0 moved down.")
-                        elif button == 5:  # R1 Trigger
+                        if button == 5:  # R1 Trigger
                             pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_UP)
                             print("Servo 0 moved up.")
                         elif button == 6:  # L2 Button
@@ -329,16 +267,25 @@ def joystick_Control():
                             pwm_servo.setServoPwm(servo_channel_left_right, SERVO_RIGHT)
                             print("Servo 1 moved to the right.")
 
+                        # Disabled the L1 Trigger (Button 4) for downward movement
+                        # Uncomment the following lines if you want to keep the L1 functionality
+                        # elif button == 4:  # L1 Trigger
+                        #     pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_DOWN)
+                        #     print("Servo 0 moved down.")
+
                     elif event.type == pygame.JOYBUTTONUP:
                         button = event.button
                         print(f"Button {button} released.")
                         # Reset servos to neutral when buttons are released
-                        if button in [4, 5]:  # L1 or R1 released
+                        if button == 5:  # R1 Trigger released
                             pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
                             print("Servo 0 reset to neutral.")
-                        elif button in [6, 7]:  # L2 or R2 released
+                        elif button in [6, 7]:  # L2 or R2 Button released
                             pwm_servo.setServoPwm(servo_channel_left_right, SERVO_LEFT_RIGHT_NEUTRAL)
                             print("Servo 1 reset to neutral.")
+                        # elif button == 4:  # L1 Trigger released
+                        #     pwm_servo.setServoPwm(servo_channel_neck, SERVO_NECK_NEUTRAL)
+                        #     print("Servo 0 reset to neutral.")
 
                     elif event.type == pygame.JOYHATMOTION:
                         hat = event.hat
@@ -390,7 +337,7 @@ def joystick_Control():
                 back_left /= max_val
                 back_right /= max_val
 
-                # Convert to PWM values (-4095 to 4095)
+                # Convert to PWM values (0 to 4095)
                 duty_front_left = int(front_left * MAX_PWM)
                 duty_front_right = int(front_right * MAX_PWM)
                 duty_back_left = int(back_left * MAX_PWM)
