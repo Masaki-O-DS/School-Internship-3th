@@ -1,154 +1,163 @@
 # controllers/joystick_control.py
-import cv2
-from cv2 import aruco
-from picamera2 import Picamera2
+
 import time
-import logging
-import threading
-import os
 import sys
 import pygame
+from Motor import Motor
+from servo import Servo
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
-class Buzzer:
-    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
-        # Prevent running as sudo
-        if os.geteuid() == 0:
-            logging.error("Running as sudo is not allowed.")
-            sys.exit(1)
-
-        # Initialize pygame mixer
-        try:
-            pygame.mixer.init()
-            logging.info("pygame.mixer initialized successfully.")
-        except pygame.error as e:
-            logging.error(f"Error initializing pygame.mixer: {e}")
-            sys.exit(1)
-
-        # Check if sound file exists
-        if not os.path.exists(sound_file):
-            logging.error(f"Sound file not found: {sound_file}")
-            sys.exit(1)
-        else:
-            logging.info(f"Sound file found: {sound_file}")
-
-        # Load sound file
-        try:
-            self.sound = pygame.mixer.Sound(sound_file)
-            self.sound.set_volume(volume)
-            logging.info("Sound file loaded successfully.")
-        except pygame.error as e:
-            logging.error(f"Error loading sound file: {e}")
-            sys.exit(1)
-
-    def run(self, command):
-        if command != "0":
-            logging.info("Buzzer ON: Playing sound.")
-            self.sound.play()
-        else:
-            logging.info("Buzzer OFF: Stopping sound.")
-            self.sound.stop()
-
 def joystick_control():
     """
-    Continuously captures video from the camera, detects AR markers, and displays the result.
-    Press 'q' to exit the camera feed.
-    Implements frame rate monitoring and uses an optimal pixel format for efficiency.
+    Controls the car and Servo0 (neck) using a joystick.
+    L1 Trigger (Button 4): Move Servo0 downward
+    R1 Trigger (Button 5): Move Servo0 upward
+    Right Stick X-axis (Axis 3): Rotate the car
+    Left Stick X-axis and Y-axis (Axis 0, 1): Move the car forward/backward and left/right without rotation
     """
-    picam2 = None  # Ensure picam2 is defined before the try block
-
     try:
-        # Initialize Picamera2
-        picam2 = Picamera2()
+        # Initialize hardware components
+        motor = Motor()
+        servo = Servo()
 
-        # Use RGB888 format for better compatibility with OpenCV
-        resolution = (640, 480)  # Lower resolution for better performance
-        preview_config = picam2.create_preview_configuration(
-            main={"format": 'RGB888', "size": resolution}
-        )
-        picam2.configure(preview_config)
-        picam2.start()
-        logging.info("Camera started successfully.")
+        # Initialize Pygame
+        pygame.init()
 
-        # Initialize ARUCO dictionary and parameters
-        aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)  # 4x4 bit ARUCO markers
-        parameters = aruco.DetectorParameters_create()
-        parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # Improve corner accuracy
+        # Initialize joystick
+        pygame.joystick.init()
 
-        # Initialize buzzer
-        buzzer = Buzzer()
+        # Get the number of connected joysticks
+        joystick_count = pygame.joystick.get_count()
+        logging.info(f"Number of joysticks connected: {joystick_count}")
 
-        # Initialize variables for FPS calculation
-        frame_count = 0
-        start_time = time.time()
-        fps = 0
+        if joystick_count > 0:
+            joystick = pygame.joystick.Joystick(0)
+            joystick.init()
+            logging.info(f"Joystick name: {joystick.get_name()}")
+            logging.info(f"Number of axes: {joystick.get_numaxes()}")
+            logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
+            logging.info(f"Number of hats: {joystick.get_numhats()}")
+        else:
+            logging.error("No joysticks connected. Exiting program.")
+            pygame.quit()
+            return
 
-        def update_fps():
-            nonlocal frame_count, start_time, fps
-            while True:
-                time.sleep(0.2)  # Update FPS more frequently
-                elapsed_time = time.time() - start_time
-                if elapsed_time > 0:
-                    fps = frame_count / elapsed_time
-                    logging.info(f"FPS: {fps:.2f}")
-                    frame_count = 0
-                    start_time = time.time()
+        # Define dead zones
+        DEAD_ZONE_MOVEMENT = 0.2
+        DEAD_ZONE_TURN = 0.2
 
-        # Start a thread to update FPS
-        fps_thread = threading.Thread(target=update_fps, daemon=True)
-        fps_thread.start()
+        # Maximum PWM value
+        MAX_PWM = 4095
+
+        # Define servo channel
+        SERVO_NECK_CHANNEL = '1'  # Servo0: neck up/down
+
+        # Define servo angles within 0° to 180°
+        SERVO_NECK_UP = 160    # Move neck up
+        SERVO_NECK_DOWN = 120  # Move neck down
+        SERVO_NECK_NEUTRAL = 90  # Neutral position for neck servo
+
+        # Set servo to neutral position at start
+        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+        logging.info("Servo0 set to neutral position.")
+
+        # Initialize clock for FPS calculation
+        clock = pygame.time.Clock()
 
         while True:
-            # Capture frame from the camera
-            frame = picam2.capture_array()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return  # Exit loop
 
-            # Validate the captured frame
-            if frame is None or frame.size == 0:
-                logging.warning("Empty frame captured. Skipping frame processing.")
-                continue
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    button = event.button
+                    logging.info(f"Button {button} pressed.")
 
-            # Convert frame to grayscale for ARUCO detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                    # Xbox Controller Button Mapping
+                    if button == 6:  # L2 Trigger
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
+                        logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
+                    elif button == 7:  # R2 Trigger
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
+                        logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
 
-            # Detect ARUCO markers in the grayscale frame
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+                elif event.type == pygame.JOYBUTTONUP:
+                    button = event.button
+                    # Reset Servo0 to neutral when buttons are released
+                    if button in [6, 7]:  # Servo0 buttons
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+                        logging.info("Servo0 reset to neutral position.")
 
-            # Draw detected markers on the original frame
-            if ids is not None:
-                frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
-                # Save the frame when AR marker is detected
-                timestamp = time.strftime("%Y%m%d-%H%M%S")
-                filename = f"aruco_detected_{timestamp}.png"
-                cv2.imwrite(filename, frame_markers)
-                logging.info(f"AR marker detected. Image saved as {filename}")
-                # Play buzzer sound
-                buzzer.run('1')
-            else:
-                frame_markers = frame.copy()
+                elif event.type == pygame.JOYHATMOTION:
+                    hat = event.hat
+                    value = event.value
+                    logging.info(f"Hat {hat} moved. Value: {value}")
 
-            # Display the frame with detected markers in a single window
-            cv2.imshow("AR Marker Detection", frame_markers)
+            # Get joystick axes
+            left_vertical = joystick.get_axis(1)      # 左スティックY軸（前後）
+            left_horizontal = joystick.get_axis(0)    # 左スティックX軸（左右）
+            right_horizontal = joystick.get_axis(3)   # 右スティックX軸（旋回）
 
-            # Increment frame count for FPS calculation
-            frame_count += 1
+            # Display raw axis values
+            raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+            logging.debug(f"Raw axes: {raw_axes}")
 
-            # Exit the loop if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                logging.info("Stopping camera feed.")
-                break
+            # Apply dead zone
+            if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
+                left_vertical = 0
+            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                left_horizontal = 0
+            if abs(right_horizontal) < DEAD_ZONE_TURN:
+                right_horizontal = 0
+
+            # Calculate movement direction
+            y = -left_vertical      # 前後の動き（反転）
+            x = left_horizontal     # 左右の動き
+            turn = right_horizontal # 旋回（右スティックのみで制御）
+
+            # Convert to PWM values (-4095 to 4095)
+            duty_y = int(y * MAX_PWM)
+            duty_x = int(x * MAX_PWM)
+            duty_turn = int(turn * MAX_PWM)
+
+            # Calculate PWM values for mecanum wheels (supporting omni-directional movement)
+            duty_front_left = duty_y + duty_x + duty_turn
+            duty_front_right = duty_y - duty_x - duty_turn
+            duty_back_left = duty_y - duty_x + duty_turn
+            duty_back_right = duty_y + duty_x - duty_turn
+
+            # PWM値を制限（-4095～4095）
+            duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
+            duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
+            duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
+            duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
+
+            # Display PWM values
+            logging.debug(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+
+            # Send PWM values to motors
+            motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+
+            # Cap the frame rate to 60 FPS
+            clock.tick(60)
 
     except KeyboardInterrupt:
-        logging.info("\nExiting camera program gracefully.")
+        logging.info("\nExiting program.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred in camera_control: {e}")
+        logging.error(f"An error occurred: {e}")
     finally:
-        # Ensure that the camera is stopped and all OpenCV windows are closed
-        if picam2 is not None:
-            picam2.stop()
-        cv2.destroyAllWindows()
-        logging.info("Camera and OpenCV windows have been closed.")
+        try:
+            # Stop motors
+            motor.setMotorModel(0, 0, 0, 0)
+            # Reset servo to neutral position
+            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+            logging.info("Motors stopped and Servo0 reset to neutral position.")
+        except Exception as e:
+            logging.error(f"Error while stopping motors or resetting servo: {e}")
+        pygame.quit()
 
 if __name__ == "__main__":
     joystick_control()
