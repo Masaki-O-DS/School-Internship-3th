@@ -9,12 +9,13 @@ import os
 import queue
 
 # ログの設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをERRORに設定
 
 def camera_control(audio_queue):
     """
     カメラから映像を取得し、ARマーカーを検出します。
     ARマーカーが検出された場合、画像を保存し、Bluetoothスピーカーで音声を再生します。
+    一度検出・保存したARマーカーの画像は再度保存しません。
     映像をリアルタイムで画面に表示します。
     """
     try:
@@ -42,6 +43,9 @@ def camera_control(audio_queue):
             os.makedirs(img_dir)
             logging.info(f"Image directory created at {img_dir}")
 
+        # 検出済みのマーカーIDを保持するセット
+        detected_ids = set()
+
         while True:
             # カメラからフレームをキャプチャ
             frame = picam2.capture_array()
@@ -59,18 +63,29 @@ def camera_control(audio_queue):
 
             # 検出されたマーカーを元のフレームに描画
             if ids is not None:
-                frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
-                timestamp = time.strftime("%Y%m%d-%H%M%S")
-                filename = f"aruco_detected_{timestamp}.png"
-                filepath = os.path.join(img_dir, filename)
-                cv2.imwrite(filepath, frame_markers)
-                logging.info(f"AR marker detected. Image saved as {filepath}")
+                ids = ids.flatten()  # IDsを1次元配列に変換
+                new_ids = [marker_id for marker_id in ids if marker_id not in detected_ids]
 
-                # 音声再生の指示をキューに送信
-                audio_queue.put("PLAY_AR_SOUND")
+                if new_ids:
+                    # 新たに検出されたマーカーがある場合のみ処理
+                    frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
 
-                # 一定時間後に音声停止の指示を送信（例：2秒後）
-                threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
+                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                    filename = f"aruco_detected_{timestamp}.png"
+                    filepath = os.path.join(img_dir, filename)
+                    cv2.imwrite(filepath, frame_markers)
+                    logging.info(f"AR marker(s) detected and image saved as {filepath}")
+
+                    # 新たに検出されたマーカーIDをセットに追加
+                    detected_ids.update(new_ids)
+
+                    # 音声再生の指示をキューに送信
+                    audio_queue.put("PLAY_AR_SOUND")
+
+                    # 一定時間後に音声停止の指示を送信（例：2秒後）
+                    threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
+                else:
+                    frame_markers = frame.copy()
             else:
                 frame_markers = frame.copy()
 
@@ -83,8 +98,6 @@ def camera_control(audio_queue):
                     break
             except cv2.error as e:
                 logging.error(f"Error displaying frame: {e}")
-
-        logging.info("Camera feed stopped by user.")
 
     except KeyboardInterrupt:
         logging.info("\nExiting camera control thread gracefully.")
