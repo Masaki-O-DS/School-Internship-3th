@@ -163,7 +163,7 @@ def joystick_control(audio_queue):
                 # 移動方向の計算
                 y = -left_vertical      # 前後の動き（反転）
                 x = left_horizontal     # 左右の動き
-                turn = right_horizontal * TURN_SPEED_FACTOR  # 旋回（スケーリングファクターを適用）
+                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 1)  # 左スティックと連動時は最大速度で旋回
 
                 # PWM値への変換（-4095から4095）
                 duty_y = int(y * MAX_PWM)
