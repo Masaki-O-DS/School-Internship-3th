@@ -38,16 +38,21 @@ def camera_control():
                 continue
 
             # Convert frame to grayscale for ARUCO detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            # gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
             # Detect ARUCO markers in the grayscale frame
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+            corners, ids, rejectedImgPoints = aruco.detectMarkers(frame, aruco_dict, parameters=parameters)
 
             # Draw detected markers on the original frame
+            # if ids is not None:
+            #     frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+            # else:
+            #     frame_markers = frame.copy()
             if ids is not None:
-                frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+                frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                frame_markers = aruco.drawDetectedMarkers(frame_color, corners, ids)
             else:
-                frame_markers = frame.copy()
+                frame_markers = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
             # Display the frame with detected markers
             cv2.imshow("AR Marker Detection", frame_markers)

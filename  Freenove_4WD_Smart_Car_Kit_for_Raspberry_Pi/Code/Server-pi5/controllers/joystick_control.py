@@ -52,7 +52,7 @@ def joystick_control():
         MAX_PWM = 4095
 
         # Define servo channel
-        SERVO_NECK_CHANNEL = '0'          # Servo0: neck up/down
+        SERVO_NECK_CHANNEL = '1'          # Servo0: neck up/down
 
         # Define servo angles within 0° to 180°
         SERVO_NECK_UP = 180                # Move neck up
@@ -73,10 +73,10 @@ def joystick_control():
                     logging.info(f"Button {button} pressed.")
 
                     # Xbox Controller Button Mapping (may vary depending on controller)
-                    if button == 4:  # L1 Trigger
+                    if button == 6:  # L1 Trigger
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
                         logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
-                    elif button == 5:  # R1 Trigger
+                    elif button == 7:  # R1 Trigger
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
                         logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
 
