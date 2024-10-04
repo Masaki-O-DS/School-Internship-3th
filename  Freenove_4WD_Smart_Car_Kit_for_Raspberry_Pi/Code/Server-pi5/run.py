@@ -3,37 +3,28 @@ import threading
 import sys
 import logging
 import time
-from controllers.joystick_control import joystick_control
-from controllers.camera_control import camera_control
+from controllers.combined_control import combined_control  # 修正後のコントローラをインポート
 
-# Configure logging for the main thread
+# ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def main():
-    # Create joystick control thread
-    joystick_thread = threading.Thread(target=joystick_control, name='JoystickControlThread')
-    
-    # Create camera control thread
-    camera_thread = threading.Thread(target=camera_control, name='CameraControlThread')
-    
-    # Start threads as non-daemon (they won't automatically terminate when the main thread exits)
-    joystick_thread.start()
-    logging.info("Joystick control thread started.")
-    
-    camera_thread.start()
-    logging.info("Camera control thread started.")
-    
-    # Keep the main thread alive to allow threads to run
+    # カメラおよびジョイスティック制御スレッドの作成
+    control_thread = threading.Thread(target=combined_control, name='CombinedControlThread')
+
+    # スレッドの開始
+    control_thread.start()
+    logging.info("Combined control thread started.")
+
+    # メインスレッドを維持
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         logging.info("\nExiting program gracefully.")
     finally:
-        # Set a flag or use an event to signal threads to stop
-        # Wait for threads to finish
-        joystick_thread.join()
-        camera_thread.join()
+        # スレッドの終了を待機
+        control_thread.join()
         logging.info("All threads have finished. Terminating program.")
         sys.exit()
 
