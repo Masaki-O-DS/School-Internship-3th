@@ -14,7 +14,7 @@ def camera_control():
         # Initialize Picamera2
         picam2 = Picamera2()
         # Use a 3-channel RGB format to ensure compatibility with OpenCV
-        preview_config = picam2.create_preview_configuration(main={"format": 'RGB888', "size": (640, 480)})
+        preview_config = picam2.create_preview_configuration(main={"format": 'GREY', "size": (320, 240)})
         picam2.configure(preview_config)
         picam2.start()
         # print("Camera started successfully.")
