@@ -121,13 +121,13 @@ def joystick_control():
             # Convert to PWM values (-4095 to 4095)
             duty_y = int(y * MAX_PWM)
             duty_x = int(x * MAX_PWM)
-            duty_turn = int(turn * MAX_PWM * 0.5)  # 旋回の強度を調整（必要に応じて係数を変更）
+            duty_turn = int(turn * MAX_PWM)
 
-            # Calculate PWM values for differential steering without adding turn from left stick
+            # Calculate PWM values for mecanum wheels (supporting omni-directional movement)
             duty_front_left = duty_y + duty_x + duty_turn
             duty_front_right = duty_y - duty_x - duty_turn
-            duty_back_left = duty_y + duty_x + duty_turn
-            duty_back_right = duty_y - duty_x - duty_turn
+            duty_back_left = duty_y - duty_x + duty_turn
+            duty_back_right = duty_y + duty_x - duty_turn
 
             # PWM値を制限（-4095～4095）
             duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
