@@ -5,6 +5,8 @@ import os
 import sys
 import pygame
 import time
+from gpiozero import Motor  # 追加: gpiozeroを使用してモーターを制御
+from signal import pause
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -70,6 +72,11 @@ def joystick_control():
         # Initialize buzzer
         buzzer = Buzzer()
 
+        # Initialize motors (GPIOピンは適宜変更してください)
+        left_motor = Motor(forward=17, backward=18)
+        right_motor = Motor(forward=22, backward=23)
+        logging.info("Motors initialized successfully.")
+
         # Main loop for joystick control
         while True:
             for event in pygame.event.get():
@@ -84,12 +91,43 @@ def joystick_control():
                     # 例: ボタンが離されたときにブザーを停止する
                     buzzer.run('0')
 
-            # 例: 軸の値を読み取って移動を制御
+            # 読み取った軸の値を取得
             axis_0 = joystick.get_axis(0)  # 左/右
             axis_1 = joystick.get_axis(1)  # 上/下
             logging.debug(f"Axis 0: {axis_0}, Axis 1: {axis_1}")
 
-            # Car制御ロジックをここに実装
+            # 軸の値に基づいてモーターを制御
+            # 前後の移動
+            if axis_1 < -0.1:
+                # 前進
+                left_motor.forward()
+                right_motor.forward()
+                logging.info("Car moving forward.")
+            elif axis_1 > 0.1:
+                # 後退
+                left_motor.backward()
+                right_motor.backward()
+                logging.info("Car moving backward.")
+            else:
+                # 停止
+                left_motor.stop()
+                right_motor.stop()
+                logging.info("Car stopped.")
+
+            # 左右の回転
+            if axis_0 < -0.1:
+                # 左旋回
+                left_motor.backward()
+                right_motor.forward()
+                logging.info("Car turning left.")
+            elif axis_0 > 0.1:
+                # 右旋回
+                left_motor.forward()
+                right_motor.backward()
+                logging.info("Car turning right.")
+            else:
+                # 直進または停止（すでに前後移動で制御）
+                pass
 
             time.sleep(0.1)
 
@@ -98,8 +136,11 @@ def joystick_control():
     except Exception as e:
         logging.error(f"An unexpected error occurred in joystick_control: {e}")
     finally:
+        # 停止処理
+        left_motor.stop()
+        right_motor.stop()
         pygame.quit()
-        logging.info("pygame has been quit.")
+        logging.info("Motors stopped and pygame has been quit.")
 
 if __name__ == "__main__":
     # Bluetoothスピーカー接続の指示

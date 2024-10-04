@@ -7,49 +7,9 @@ import logging
 import threading
 import os
 import sys
-import pygame
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-
-class Buzzer:
-    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
-        # sudoでの実行を防止
-        if os.geteuid() == 0:
-            logging.error("Running as sudo is not allowed. Please run without sudo.")
-            sys.exit(1)
-
-        # pygameミキサーの初期化
-        try:
-            pygame.mixer.init()
-            logging.info("pygame.mixer initialized successfully.")
-        except pygame.error as e:
-            logging.error(f"Error initializing pygame.mixer: {e}")
-            sys.exit(1)
-
-        # サウンドファイルの存在確認
-        if not os.path.exists(sound_file):
-            logging.error(f"Sound file not found: {sound_file}")
-            sys.exit(1)
-        else:
-            logging.info(f"Sound file found: {sound_file}")
-
-        # サウンドファイルのロード
-        try:
-            self.sound = pygame.mixer.Sound(sound_file)
-            self.sound.set_volume(volume)
-            logging.info("Sound file loaded successfully.")
-        except pygame.error as e:
-            logging.error(f"Error loading sound file: {e}")
-            sys.exit(1)
-
-    def run(self, command):
-        if command != "0":
-            logging.info("Buzzer ON: Playing sound.")
-            self.sound.play()
-        else:
-            logging.info("Buzzer OFF: Stopping sound.")
-            self.sound.stop()
 
 def combined_control():
     """
@@ -71,9 +31,6 @@ def combined_control():
         aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
-
-        # ブザーの初期化
-        buzzer = Buzzer(sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav')
 
         # FPS計算の初期化
         frame_count = 0
@@ -102,6 +59,11 @@ def combined_control():
             os.makedirs(img_dir)
             logging.info(f"Image directory created at {img_dir}")
 
+        # Initialize buzzer control via GPIO (別の方法でブザーを制御)
+        # 例としてGPIOピンを使用してブザーを制御する場合
+        from gpiozero import Buzzer as GPIOBuzzer
+        buzzer_gpio = GPIOBuzzer(27)  # ブザーが接続されているGPIOピンを指定
+
         while True:
             # カメラからのフレームキャプチャ
             frame = picam2.capture_array()
@@ -125,11 +87,11 @@ def combined_control():
                 filepath = os.path.join(img_dir, filename)
                 cv2.imwrite(filepath, frame_markers)
                 logging.info(f"AR marker detected. Image saved as {filepath}")
-                # ブザーの鳴動
-                buzzer.run('1')
+                # ブザーの鳴動 (GPIOを使用)
+                buzzer_gpio.on()
             else:
                 frame_markers = frame.copy()
-                buzzer.run('0')  # ブザーをオフにする
+                buzzer_gpio.off()  # ブザーをオフにする
 
             # フレームの表示
             cv2.imshow("AR Marker Detection", frame_markers)
@@ -154,6 +116,12 @@ def combined_control():
                 logging.info("Camera stopped successfully.")
             except Exception as e:
                 logging.error(f"Error stopping camera: {e}")
+        # ブザーの停止
+        try:
+            buzzer_gpio.off()
+            logging.info("Buzzer turned off.")
+        except:
+            pass
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
 
