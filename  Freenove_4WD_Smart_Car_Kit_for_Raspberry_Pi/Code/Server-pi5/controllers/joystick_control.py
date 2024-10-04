@@ -15,6 +15,8 @@ def joystick_control():
     Controls the car and Servo0 (neck) using a joystick.
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
+    Right Stick X-axis (Axis 3): Rotate the car
+    Left Stick X-axis and Y-axis (Axis 0, 1): Move the car forward/backward and left/right without rotation
     """
     try:
         # Initialize hardware components
@@ -41,7 +43,7 @@ def joystick_control():
         else:
             logging.error("No joysticks connected. Exiting program.")
             pygame.quit()
-            sys.exit()
+            return
 
         # Define dead zones
         DEAD_ZONE_MOVEMENT = 0.2
@@ -62,10 +64,13 @@ def joystick_control():
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
         logging.info("Servo0 set to neutral position.")
 
+        # Initialize clock for FPS calculation
+        clock = pygame.time.Clock()
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    raise KeyboardInterrupt  # Exit loop
+                    return  # Exit loop
 
                 elif event.type == pygame.JOYBUTTONDOWN:
                     button = event.button
@@ -111,18 +116,18 @@ def joystick_control():
             # Calculate movement direction
             y = -left_vertical      # 前後の動き（反転）
             x = left_horizontal     # 左右の動き
-            turn = right_horizontal # 旋回
+            turn = right_horizontal # 旋回（右スティックのみで制御）
 
             # Convert to PWM values (-4095 to 4095)
             duty_y = int(y * MAX_PWM)
             duty_x = int(x * MAX_PWM)
-            duty_turn = int(turn * MAX_PWM * 0.5)  # 旋回の強度を調整（必要に応じて係数を変更）
+            duty_turn = int(turn * MAX_PWM)
 
-            # Calculate PWM values for differential steering
+            # Calculate PWM values for mecanum wheels (supporting omni-directional movement)
             duty_front_left = duty_y + duty_x + duty_turn
             duty_front_right = duty_y - duty_x - duty_turn
-            duty_back_left = duty_y + duty_x + duty_turn
-            duty_back_right = duty_y - duty_x - duty_turn
+            duty_back_left = duty_y - duty_x + duty_turn
+            duty_back_right = duty_y + duty_x - duty_turn
 
             # PWM値を制限（-4095～4095）
             duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
@@ -136,11 +141,14 @@ def joystick_control():
             # Send PWM values to motors
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # Short wait to prevent excessive CPU usage
-            time.sleep(0.05)
+            # Cap the frame rate to 60 FPS
+            clock.tick(60)
 
     except KeyboardInterrupt:
         logging.info("\nExiting program.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+    finally:
         try:
             # Stop motors
             motor.setMotorModel(0, 0, 0, 0)
@@ -149,11 +157,7 @@ def joystick_control():
             logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:
             logging.error(f"Error while stopping motors or resetting servo: {e}")
-        finally:
-            pygame.quit()
-        sys.exit()
-
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
         pygame.quit()
-        sys.exit()
+
+if __name__ == "__main__":
+    joystick_control()

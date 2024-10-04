@@ -1,27 +1,40 @@
 # run.py
-
 import threading
-import time
 import sys
+import logging
+import time
 from controllers.joystick_control import joystick_control
 from controllers.camera_control import camera_control
+
+# Configure logging for the main thread
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def main():
     # Create joystick control thread
     joystick_thread = threading.Thread(target=joystick_control, name='JoystickControlThread')
     
-    # Start joystick control thread as daemon (it will terminate when the main thread exits)
-    joystick_thread.daemon = True
+    # Create camera control thread
+    camera_thread = threading.Thread(target=camera_control, name='CameraControlThread')
+    
+    # Start threads as non-daemon (they won't automatically terminate when the main thread exits)
     joystick_thread.start()
+    logging.info("Joystick control thread started.")
     
+    camera_thread.start()
+    logging.info("Camera control thread started.")
     
-    # Run camera_control in the main thread
+    # Keep the main thread alive to allow threads to run
     try:
-        camera_control()
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
-        print("\nExiting program gracefully.")
+        logging.info("\nExiting program gracefully.")
     finally:
-        print("Terminating program.")
+        # Set a flag or use an event to signal threads to stop
+        # Wait for threads to finish
+        joystick_thread.join()
+        camera_thread.join()
+        logging.info("All threads have finished. Terminating program.")
         sys.exit()
 
 if __name__ == '__main__':
