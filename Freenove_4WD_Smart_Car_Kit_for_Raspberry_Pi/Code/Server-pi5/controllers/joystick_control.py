@@ -92,7 +92,7 @@ def joystick_control(audio_queue):
         MAX_PWM = 4095
 
         # 旋回速度スケーリングファクター
-        TURN_SPEED_FACTOR = 0.5  # 旋回速度を50%に設定
+        TURN_SPEED_FACTOR = 0.2  # 旋回速度を50%に設定
 
         # サーボチャンネルの定義
         SERVO_NECK_CHANNEL = '1'  # Servo0: neck up/down
