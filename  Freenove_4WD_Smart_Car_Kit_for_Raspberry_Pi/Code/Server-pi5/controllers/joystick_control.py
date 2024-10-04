@@ -15,6 +15,7 @@ def joystick_control():
     Controls the car and Servo0 (neck) using a joystick.
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
+    Right Stick X-axis (Axis 3): Rotate the car
     """
     try:
         # Initialize hardware components
@@ -61,6 +62,9 @@ def joystick_control():
         # Set servo to neutral position at start
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
         logging.info("Servo0 set to neutral position.")
+
+        # Initialize clock for FPS calculation
+        clock = pygame.time.Clock()
 
         while True:
             for event in pygame.event.get():
@@ -136,8 +140,8 @@ def joystick_control():
             # Send PWM values to motors
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # Short wait to prevent excessive CPU usage
-            time.sleep(0.05)
+            # Cap the frame rate to 60 FPS
+            clock.tick(60)
 
     except KeyboardInterrupt:
         logging.info("\nExiting program.")
