@@ -3,8 +3,8 @@ import threading
 import sys
 import logging
 import time
-from controllers.combined_control import combined_control  # 修正後のコントローラをインポート
-from controllers.joystick_control import joystick_control    # ジョイスティック制御をインポート
+from controllers.combined_control import combined_control
+from controllers.joystick_control import joystick_control
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')

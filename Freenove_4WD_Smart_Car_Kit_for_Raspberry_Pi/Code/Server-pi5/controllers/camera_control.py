@@ -14,7 +14,6 @@ def camera_control():
     """
     Continuously captures video from the camera, detects AR markers, and displays the result.
     Press 'q' to exit the camera feed.
-    Implements frame rate monitoring and uses an optimal pixel format for efficiency.
     """
     try:
         # Initialize Picamera2
@@ -34,6 +33,13 @@ def camera_control():
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # Improve corner accuracy
 
+        # imgフォルダのパスを設定
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        img_dir = os.path.join(os.path.dirname(script_dir), 'img')
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir)
+            logging.info(f"Image directory created at {img_dir}")
+
         while True:
             # Capture frame from the camera
             frame = picam2.capture_array()
@@ -52,6 +58,11 @@ def camera_control():
             # Draw detected markers on the original frame
             if ids is not None:
                 frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+                timestamp = time.strftime("%Y%m%d-%H%M%S")
+                filename = f"aruco_detected_{timestamp}.png"
+                filepath = os.path.join(img_dir, filename)
+                cv2.imwrite(filepath, frame_markers)
+                logging.info(f"AR marker detected. Image saved as {filepath}")
             else:
                 frame_markers = frame.copy()
 

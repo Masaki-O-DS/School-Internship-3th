@@ -6,8 +6,7 @@ import time
 import logging
 import threading
 import os
-import sys
-from gpiozero import Buzzer as GPIOBuzzer  # GPIOを使用してブザーを制御
+from gpiozero import Buzzer as GPIOBuzzer
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -33,13 +32,6 @@ def combined_control():
         aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
-
-        # FPS計算の初期化（削除）
-        # frame_count = 0
-        # start_time = time.time()
-        # fps = 0
-
-        # FPS更新スレッドの削除
 
         # imgフォルダのパスを設定
         script_dir = os.path.dirname(os.path.abspath(__file__))

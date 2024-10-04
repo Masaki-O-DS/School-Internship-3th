@@ -4,7 +4,8 @@ import os
 import sys
 import pygame
 import time
-from gpiozero import Motor  # gpiozeroを使用してモーターを制御
+from gpiozero import Motor
+from pygame.locals import JOYAXISMOTION, JOYBUTTONDOWN, JOYBUTTONUP
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -40,13 +41,13 @@ class Buzzer:
             logging.error(f"Error loading sound file: {e}")
             sys.exit(1)
 
-    def run(self, command):
-        if command != "0":
-            logging.info("Buzzer ON: Playing sound.")
-            self.sound.play()
-        else:
-            logging.info("Buzzer OFF: Stopping sound.")
-            self.sound.stop()
+    def play(self):
+        logging.info("Buzzer ON: Playing sound.")
+        self.sound.play()
+
+    def stop(self):
+        logging.info("Buzzer OFF: Stopping sound.")
+        self.sound.stop()
 
 def joystick_control():
     """
@@ -78,16 +79,16 @@ def joystick_control():
         # Main loop for joystick control
         while True:
             for event in pygame.event.get():
-                if event.type == pygame.JOYBUTTONDOWN:
+                if event.type == JOYBUTTONDOWN:
                     button = event.button
                     logging.info(f"Joystick button {button} pressed.")
                     # 例: ボタンが押されたときにブザーを鳴らす
-                    buzzer.run('1')
-                elif event.type == pygame.JOYBUTTONUP:
+                    buzzer.play()
+                elif event.type == JOYBUTTONUP:
                     button = event.button
                     logging.info(f"Joystick button {button} released.")
                     # 例: ボタンが離されたときにブザーを停止する
-                    buzzer.run('0')
+                    buzzer.stop()
 
             # 読み取った軸の値を取得
             axis_0 = joystick.get_axis(0)  # 左/右
