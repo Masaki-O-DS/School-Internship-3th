@@ -8,7 +8,7 @@ from controllers.camera_control import camera_control
 import queue
 
 # ログの設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをERRORに設定
 
 def main():
     # スレッド間通信用のキューを作成
@@ -16,17 +16,17 @@ def main():
 
     # ジョイスティック制御スレッドの作成
     joystick_thread = threading.Thread(target=joystick_control, args=(audio_queue,), name='JoystickControlThread')
-    
+
     # カメラ制御スレッドの作成
     camera_thread = threading.Thread(target=camera_control, args=(audio_queue,), name='CameraControlThread')
-    
+
     # スレッドの開始
     joystick_thread.start()
     logging.info("Joystick control thread started.")
-    
+
     camera_thread.start()
     logging.info("Camera control thread started.")
-    
+
     # メインスレッドを維持
     try:
         while True:
@@ -36,7 +36,7 @@ def main():
     finally:
         # スレッドに終了を通知（キューにNoneを送信）
         audio_queue.put(None)
-        
+
         # スレッドの終了を待機
         joystick_thread.join()
         camera_thread.join()
