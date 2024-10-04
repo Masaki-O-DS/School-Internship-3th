@@ -1,11 +1,11 @@
 # controllers/joystick_control.py
-import logging
-import os
+import time
 import sys
 import pygame
-import time
-from gpiozero import Motor
-from pygame.locals import JOYAXISMOTION, JOYBUTTONDOWN, JOYBUTTONUP
+from Motor import Motor
+from servo import Servo
+import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -51,103 +51,175 @@ class Buzzer:
 
 def joystick_control():
     """
-    ジョイスティックを使用してCarを操作します。
+    Controls the car and Servo0 (neck) using a joystick.
+    L1 Trigger (Button 6): Move Servo0 downward
+    R1 Trigger (Button 7): Move Servo0 upward
+    Right Stick X-axis (Axis 3): Rotate the car
+    Left Stick X-axis and Y-axis (Axis 0, 1): Move the car forward/backward and left/right without rotation
     """
     try:
-        # Initialize pygame
+        # Initialize hardware components
+        motor = Motor()
+        servo = Servo()
+
+        # Initialize Pygame
         pygame.init()
+
+        # Initialize joystick
         pygame.joystick.init()
-        logging.info("pygame initialized successfully.")
 
-        # Check for joystick
-        if pygame.joystick.get_count() == 0:
-            logging.error("No joystick detected. Please connect a joystick and try again.")
-            sys.exit(1)
+        # Get the number of connected joysticks
+        joystick_count = pygame.joystick.get_count()
+        logging.info(f"Number of joysticks connected: {joystick_count}")
 
-        joystick = pygame.joystick.Joystick(0)
-        joystick.init()
-        logging.info(f"Joystick '{joystick.get_name()}' initialized.")
+        if joystick_count > 0:
+            joystick = pygame.joystick.Joystick(0)
+            joystick.init()
+            logging.info(f"Joystick name: {joystick.get_name()}")
+            logging.info(f"Number of axes: {joystick.get_numaxes()}")
+            logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
+            logging.info(f"Number of hats: {joystick.get_numhats()}")
+        else:
+            logging.error("No joysticks connected. Exiting program.")
+            pygame.quit()
+            return
 
         # Initialize buzzer
         buzzer = Buzzer()
 
-        # Initialize motors (GPIOピンは適宜変更してください)
-        left_motor = Motor(forward=17, backward=18)
-        right_motor = Motor(forward=22, backward=23)
-        logging.info("Motors initialized successfully.")
+        # Define dead zones
+        DEAD_ZONE_MOVEMENT = 0.2
+        DEAD_ZONE_TURN = 0.2
 
-        # Main loop for joystick control
+        # Maximum PWM value
+        MAX_PWM = 4095
+
+        # Define servo channel
+        SERVO_NECK_CHANNEL = '1'  # Servo0: neck up/down
+
+        # Define servo angles within 0° to 180°
+        SERVO_NECK_UP = 160    # Move neck up
+        SERVO_NECK_DOWN = 120  # Move neck down
+        SERVO_NECK_NEUTRAL = 90  # Neutral position for neck servo
+
+        # Set servo to neutral position at start
+        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+        logging.info("Servo0 set to neutral position.")
+
+        # Initialize clock for FPS calculation
+        clock = pygame.time.Clock()
+
         while True:
             for event in pygame.event.get():
-                if event.type == JOYBUTTONDOWN:
-                    button = event.button
-                    logging.info(f"Joystick button {button} pressed.")
-                    # 例: ボタンが押されたときにブザーを鳴らす
-                    buzzer.play()
-                elif event.type == JOYBUTTONUP:
-                    button = event.button
-                    logging.info(f"Joystick button {button} released.")
-                    # 例: ボタンが離されたときにブザーを停止する
-                    buzzer.stop()
+                if event.type == pygame.QUIT:
+                    return  # Exit loop
 
-            # 読み取った軸の値を取得
-            axis_0 = joystick.get_axis(0)  # 左/右
-            axis_1 = joystick.get_axis(1)  # 上/下
-            logging.debug(f"Axis 0: {axis_0}, Axis 1: {axis_1}")
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    button = event.button
+                    logging.info(f"Button {button} pressed.")
 
-            # 軸の値に基づいてモーターを制御
-            # 前後の移動
-            if axis_1 < -0.1:
-                # 前進
-                left_motor.forward()
-                right_motor.forward()
-                logging.info("Car moving forward.")
-            elif axis_1 > 0.1:
-                # 後退
-                left_motor.backward()
-                right_motor.backward()
-                logging.info("Car moving backward.")
+                    # Xbox Controller Button Mapping
+                    if button == 6:  # L2 Trigger
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
+                        logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
+                    elif button == 7:  # R2 Trigger
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
+                        logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
+
+                    # Play buzzer sound on specific button presses if needed
+                    # For example, play sound on button 0
+                    if button == 0:
+                        buzzer.play()
+
+                elif event.type == pygame.JOYBUTTONUP:
+                    button = event.button
+                    # Reset Servo0 to neutral when buttons are released
+                    if button in [6, 7]:  # Servo0 buttons
+                        servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+                        logging.info("Servo0 reset to neutral position.")
+
+                    # Stop buzzer sound on specific button releases if needed
+                    if button == 0:
+                        buzzer.stop()
+
+                elif event.type == pygame.JOYHATMOTION:
+                    hat = event.hat
+                    value = event.value
+                    logging.info(f"Hat {hat} moved. Value: {value}")
+
+            # Get joystick axes
+            left_vertical = joystick.get_axis(1)      # 左スティックY軸（前後）
+            left_horizontal = joystick.get_axis(0)    # 左スティックX軸（左右）
+            right_horizontal = joystick.get_axis(3)   # 右スティックX軸（旋回）
+
+            # Display raw axis values
+            raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+            logging.debug(f"Raw axes: {raw_axes}")
+
+            # Apply dead zone
+            if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
+                left_vertical = 0
+            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                left_horizontal = 0
+            if abs(right_horizontal) < DEAD_ZONE_TURN:
+                right_horizontal = 0
+
+            # Calculate movement direction
+            y = -left_vertical      # 前後の動き（反転）
+            x = left_horizontal     # 左右の動き
+            turn = right_horizontal # 旋回（右スティックのみで制御）
+
+            # Convert to PWM values (-4095 to 4095)
+            duty_y = int(y * MAX_PWM)
+            duty_x = int(x * MAX_PWM)
+            duty_turn = int(turn * MAX_PWM)
+
+            # Calculate PWM values for mecanum wheels (supporting omni-directional movement)
+            duty_front_left = duty_y + duty_x + duty_turn
+            duty_front_right = duty_y - duty_x - duty_turn
+            duty_back_left = duty_y - duty_x + duty_turn
+            duty_back_right = duty_y + duty_x - duty_turn
+
+            # PWM値を制限（-4095～4095）
+            duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
+            duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
+            duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
+            duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
+
+            # Display PWM values
+            logging.debug(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+
+            # Send PWM values to motors
+            motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+
+            # Log car movement status
+            if duty_y != 0 or duty_x != 0 or duty_turn != 0:
+                if duty_y > 0:
+                    logging.info("Car moving forward.")
+                elif duty_y < 0:
+                    logging.info("Car moving backward.")
+                
+                if duty_turn > 0:
+                    logging.info("Car turning right.")
+                elif duty_turn < 0:
+                    logging.info("Car turning left.")
             else:
-                # 停止
-                left_motor.stop()
-                right_motor.stop()
                 logging.info("Car stopped.")
 
-            # 左右の回転
-            if axis_0 < -0.1:
-                # 左旋回
-                left_motor.backward()
-                right_motor.forward()
-                logging.info("Car turning left.")
-            elif axis_0 > 0.1:
-                # 右旋回
-                left_motor.forward()
-                right_motor.backward()
-                logging.info("Car turning right.")
-            else:
-                # 直進または停止（すでに前後移動で制御）
-                pass
-
-            time.sleep(0.1)
+            # Cap the frame rate to 60 FPS
+            clock.tick(60)
 
     except KeyboardInterrupt:
-        logging.info("\nExiting joystick control gracefully.")
+        logging.info("\nExiting program.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred in joystick_control: {e}")
+        logging.error(f"An error occurred: {e}")
     finally:
-        # 停止処理
-        left_motor.stop()
-        right_motor.stop()
+        try:
+            # Stop motors
+            motor.setMotorModel(0, 0, 0, 0)
+            # Reset servo to neutral position
+            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+            logging.info("Motors stopped and Servo0 reset to neutral position.")
+        except Exception as e:
+            logging.error(f"Error while stopping motors or resetting servo: {e}")
         pygame.quit()
-        logging.info("Motors stopped and pygame has been quit.")
-
-if __name__ == "__main__":
-    # Bluetoothスピーカー接続の指示
-    logging.info("First, connect the Raspberry Pi to the Bluetooth speaker.")
-    logging.info("Hold down the Bluetooth speaker button until you hear a sound to indicate it's ready to connect.")
-
-    # sudoでの実行に関する警告
-    logging.info("Note: Do not run the program with sudo. Running as sudo can cause device configuration issues and errors.")
-    logging.info("If the sound does not adjust or mute correctly, right-click the volume button on the top right of the Raspberry Pi 5 desktop screen and select 'Device Profile'.")
-
-    joystick_control()
