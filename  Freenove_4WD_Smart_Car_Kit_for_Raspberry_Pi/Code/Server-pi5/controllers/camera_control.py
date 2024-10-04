@@ -19,10 +19,10 @@ def camera_control():
         # Initialize Picamera2
         picam2 = Picamera2()
 
-        # Use YUV420 format for better performance
-        resolution = (640, 480)  # Adjust as needed for performance
+        # Use RGB888 format for better compatibility with OpenCV
+        resolution = (1280, 720)  # Adjust as needed for performance
         preview_config = picam2.create_preview_configuration(
-            main={"format": 'YUV420', "size": resolution}
+            main={"format": 'RGB888', "size": resolution}
         )
         picam2.configure(preview_config)
         picam2.start()
@@ -63,7 +63,7 @@ def camera_control():
                 continue
 
             # Convert frame to grayscale for ARUCO detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_YUV2GRAY_YV12)
+            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
             # Detect ARUCO markers in the grayscale frame
             corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
@@ -74,7 +74,7 @@ def camera_control():
             else:
                 frame_markers = frame.copy()
 
-            # Display the frame with detected markers
+            # Display the frame with detected markers in a single window
             cv2.imshow("AR Marker Detection", frame_markers)
 
             # Increment frame count for FPS calculation
