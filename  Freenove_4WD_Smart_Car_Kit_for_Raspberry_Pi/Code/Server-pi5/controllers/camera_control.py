@@ -4,6 +4,7 @@ from cv2 import aruco
 from picamera2 import Picamera2
 import time
 import logging
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -17,11 +18,11 @@ def camera_control():
     try:
         # Initialize Picamera2
         picam2 = Picamera2()
-        
-        # Use RGB888 format for better compatibility with OpenCV
+
+        # Use YUV420 format for better performance
         resolution = (640, 480)  # Adjust as needed for performance
         preview_config = picam2.create_preview_configuration(
-            main={"format": 'RGB888', "size": resolution}
+            main={"format": 'YUV420', "size": resolution}
         )
         picam2.configure(preview_config)
         picam2.start()
@@ -37,6 +38,21 @@ def camera_control():
         start_time = time.time()
         fps = 0
 
+        def update_fps():
+            nonlocal frame_count, start_time, fps
+            while True:
+                time.sleep(1)
+                elapsed_time = time.time() - start_time
+                if elapsed_time > 0:
+                    fps = frame_count / elapsed_time
+                    logging.info(f"FPS: {fps:.2f}")
+                    frame_count = 0
+                    start_time = time.time()
+
+        # Start a thread to update FPS
+        fps_thread = threading.Thread(target=update_fps, daemon=True)
+        fps_thread.start()
+
         while True:
             # Capture frame from the camera
             frame = picam2.capture_array()
@@ -47,7 +63,7 @@ def camera_control():
                 continue
 
             # Convert frame to grayscale for ARUCO detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            gray = cv2.cvtColor(frame, cv2.COLOR_YUV2GRAY_YV12)
 
             # Detect ARUCO markers in the grayscale frame
             corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
@@ -61,14 +77,8 @@ def camera_control():
             # Display the frame with detected markers
             cv2.imshow("AR Marker Detection", frame_markers)
 
-            # Calculate FPS
+            # Increment frame count for FPS calculation
             frame_count += 1
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 1.0:
-                fps = frame_count / elapsed_time
-                logging.info(f"FPS: {fps:.2f}")
-                frame_count = 0
-                start_time = time.time()
 
             # Exit the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -84,3 +94,6 @@ def camera_control():
         picam2.stop()
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
+
+if __name__ == "__main__":
+    camera_control()

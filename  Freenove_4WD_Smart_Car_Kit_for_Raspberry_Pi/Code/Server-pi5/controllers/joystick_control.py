@@ -1,4 +1,3 @@
-
 # controllers/joystick_control.py
 
 import time
@@ -17,6 +16,7 @@ def joystick_control():
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
     Right Stick X-axis (Axis 3): Rotate the car
+    Left Stick X-axis and Y-axis (Axis 0, 1): Move the car forward/backward and left/right without rotation
     """
     try:
         # Initialize hardware components
@@ -116,14 +116,14 @@ def joystick_control():
             # Calculate movement direction
             y = -left_vertical      # 前後の動き（反転）
             x = left_horizontal     # 左右の動き
-            turn = right_horizontal # 旋回
+            turn = right_horizontal # 旋回（右スティックのみで制御）
 
             # Convert to PWM values (-4095 to 4095)
             duty_y = int(y * MAX_PWM)
             duty_x = int(x * MAX_PWM)
             duty_turn = int(turn * MAX_PWM * 0.5)  # 旋回の強度を調整（必要に応じて係数を変更）
 
-            # Calculate PWM values for differential steering
+            # Calculate PWM values for differential steering without adding turn from left stick
             duty_front_left = duty_y + duty_x + duty_turn
             duty_front_right = duty_y - duty_x - duty_turn
             duty_back_left = duty_y + duty_x + duty_turn
@@ -158,3 +158,6 @@ def joystick_control():
         except Exception as e:
             logging.error(f"Error while stopping motors or resetting servo: {e}")
         pygame.quit()
+
+if __name__ == "__main__":
+    joystick_control()
