@@ -75,14 +75,14 @@ def camera_control(audio_queue):
         picam2.start()
         logging.info("Camera started successfully.")
 
-        # imgフォルダのパスを設定
+        # imgフォルダのパスを設定（不要な場合は削除可能）
         script_dir = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(os.path.dirname(script_dir), 'img')
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
             logging.info(f"Image directory created at {img_dir}")
 
-        # 検出済みのマーカーIDを保持するセット
+        # 検出済みのマーカーIDを保持するセット（必要な場合にのみ使用）
         detected_ids = set()
 
         # フレーム処理のインターバル設定
