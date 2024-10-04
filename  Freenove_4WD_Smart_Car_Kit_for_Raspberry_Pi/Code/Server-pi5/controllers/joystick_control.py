@@ -16,7 +16,7 @@ class Buzzer:
     def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
         # Prevent running as sudo
         if os.geteuid() == 0:
-            logging.error("Running as sudo is not allowed.")
+            logging.error("Running as sudo is not allowed. Please run without sudo.")
             sys.exit(1)
 
         # Initialize pygame mixer
@@ -146,9 +146,21 @@ def joystick_control():
     finally:
         # Ensure that the camera is stopped and all OpenCV windows are closed
         if picam2 is not None:
-            picam2.stop()
+            try:
+                picam2.stop()
+                logging.info("Camera stopped successfully.")
+            except Exception as e:
+                logging.error(f"Error stopping camera: {e}")
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
 
 if __name__ == "__main__":
+    # Bluetooth speaker connection instructions
+    logging.info("First, connect the Raspberry Pi to the Bluetooth speaker.")
+    logging.info("Hold down the Bluetooth speaker button until you hear a sound to indicate it's ready to connect.")
+
+    # Warning about running as sudo
+    logging.info("Note: Do not run the program with sudo. Running as sudo can cause device configuration issues and errors.")
+    logging.info("If the sound does not adjust or mute correctly, right-click the volume button on the top right of the Raspberry Pi 5 desktop screen and select 'Device Profile'.")
+
     joystick_control()
