@@ -1,3 +1,4 @@
+
 # controllers/joystick_control.py
 
 import time
@@ -15,6 +16,7 @@ def joystick_control():
     Controls the car and Servo0 (neck) using a joystick.
     L1 Trigger (Button 4): Move Servo0 downward
     R1 Trigger (Button 5): Move Servo0 upward
+    Right Stick X-axis (Axis 3): Rotate the car
     """
     try:
         # Initialize hardware components
@@ -41,7 +43,7 @@ def joystick_control():
         else:
             logging.error("No joysticks connected. Exiting program.")
             pygame.quit()
-            sys.exit()
+            return
 
         # Define dead zones
         DEAD_ZONE_MOVEMENT = 0.2
@@ -62,10 +64,13 @@ def joystick_control():
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
         logging.info("Servo0 set to neutral position.")
 
+        # Initialize clock for FPS calculation
+        clock = pygame.time.Clock()
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    raise KeyboardInterrupt  # Exit loop
+                    return  # Exit loop
 
                 elif event.type == pygame.JOYBUTTONDOWN:
                     button = event.button
@@ -136,11 +141,14 @@ def joystick_control():
             # Send PWM values to motors
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # Short wait to prevent excessive CPU usage
-            time.sleep(0.05)
+            # Cap the frame rate to 60 FPS
+            clock.tick(60)
 
     except KeyboardInterrupt:
         logging.info("\nExiting program.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+    finally:
         try:
             # Stop motors
             motor.setMotorModel(0, 0, 0, 0)
@@ -149,11 +157,4 @@ def joystick_control():
             logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:
             logging.error(f"Error while stopping motors or resetting servo: {e}")
-        finally:
-            pygame.quit()
-        sys.exit()
-
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
         pygame.quit()
-        sys.exit()

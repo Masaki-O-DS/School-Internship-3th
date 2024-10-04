@@ -1,5 +1,4 @@
 # controllers/camera_control.py
-
 import cv2
 from cv2 import aruco
 from picamera2 import Picamera2
@@ -13,13 +12,17 @@ def camera_control():
     """
     Continuously captures video from the camera, detects AR markers, and displays the result.
     Press 'q' to exit the camera feed.
+    Implements frame rate monitoring and uses an optimal pixel format for efficiency.
     """
     try:
         # Initialize Picamera2
         picam2 = Picamera2()
-        # Use a 3-channel RGB format with a reasonable resolution for real-time processing
+        
+        # Use RGB888 format for better compatibility with OpenCV
         resolution = (640, 480)  # Adjust as needed for performance
-        preview_config = picam2.create_video_configuration(main={"format": 'RGB888', "size": resolution})
+        preview_config = picam2.create_preview_configuration(
+            main={"format": 'RGB888', "size": resolution}
+        )
         picam2.configure(preview_config)
         picam2.start()
         logging.info("Camera started successfully.")
@@ -28,6 +31,11 @@ def camera_control():
         aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)  # 4x4 bit ARUCO markers
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # Improve corner accuracy
+
+        # Initialize variables for FPS calculation
+        frame_count = 0
+        start_time = time.time()
+        fps = 0
 
         while True:
             # Capture frame from the camera
@@ -46,20 +54,26 @@ def camera_control():
 
             # Draw detected markers on the original frame
             if ids is not None:
-                frame_markers = aruco.drawDetectedMarkers(frame, corners, ids)
+                frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
             else:
-                frame_markers = frame
+                frame_markers = frame.copy()
 
             # Display the frame with detected markers
             cv2.imshow("AR Marker Detection", frame_markers)
+
+            # Calculate FPS
+            frame_count += 1
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 1.0:
+                fps = frame_count / elapsed_time
+                logging.info(f"FPS: {fps:.2f}")
+                frame_count = 0
+                start_time = time.time()
 
             # Exit the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 logging.info("Stopping camera feed.")
                 break
-
-            # Optional: Remove sleep to maximize frame rate
-            # time.sleep(0.01)  # Adjust or remove as needed
 
     except KeyboardInterrupt:
         logging.info("\nExiting camera program gracefully.")
