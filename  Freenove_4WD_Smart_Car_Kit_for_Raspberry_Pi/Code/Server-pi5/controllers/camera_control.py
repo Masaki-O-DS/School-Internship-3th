@@ -20,7 +20,7 @@ def camera_control():
         picam2 = Picamera2()
 
         # Use RGB888 format for better compatibility with OpenCV
-        resolution = (1280, 720)  # Adjust as needed for performance
+        resolution = (640, 480)  # Lower resolution for better performance
         preview_config = picam2.create_preview_configuration(
             main={"format": 'RGB888', "size": resolution}
         )
@@ -41,7 +41,7 @@ def camera_control():
         def update_fps():
             nonlocal frame_count, start_time, fps
             while True:
-                time.sleep(1)
+                time.sleep(0.5)  # Update FPS more frequently
                 elapsed_time = time.time() - start_time
                 if elapsed_time > 0:
                     fps = frame_count / elapsed_time
