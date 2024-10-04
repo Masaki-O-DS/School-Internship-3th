@@ -13,7 +13,7 @@ import pygame
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
-    def __init__(self, sound_file='/home/ogawamasaki/car_project/ Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
+    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
         # Prevent running as sudo
         if os.geteuid() == 0:
             logging.error("Running as sudo is not allowed.")
@@ -57,6 +57,8 @@ def joystick_control():
     Press 'q' to exit the camera feed.
     Implements frame rate monitoring and uses an optimal pixel format for efficiency.
     """
+    picam2 = None  # Ensure picam2 is defined before the try block
+
     try:
         # Initialize Picamera2
         picam2 = Picamera2()
@@ -143,9 +145,10 @@ def joystick_control():
         logging.error(f"An unexpected error occurred in camera_control: {e}")
     finally:
         # Ensure that the camera is stopped and all OpenCV windows are closed
-        picam2.stop()
+        if picam2 is not None:
+            picam2.stop()
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
 
 if __name__ == "__main__":
-    camera_control()
+    joystick_control()
