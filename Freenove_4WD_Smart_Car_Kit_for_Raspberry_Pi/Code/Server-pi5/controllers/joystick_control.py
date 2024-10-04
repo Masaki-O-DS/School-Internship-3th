@@ -9,12 +9,12 @@ import os
 import queue
 
 # ログの設定
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをERRORに設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをINFOに設定
 
 class Buzzer:
     def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
         # sudoでの実行を防止
-        if os.geteuid() == 0: 
+        if os.geteuid() == 0:
             logging.error("Running as sudo is not allowed. Please run without sudo.")
             sys.exit(1)
 
@@ -96,7 +96,7 @@ def joystick_control(audio_queue):
         MAX_PWM = 4095
 
         # 旋回速度スケーリングファクター
-        TURN_SPEED_FACTOR = 0.4  # 旋回速度を30%に設定
+        TURN_SPEED_FACTOR = 0.2  # 旋回速度を20%に設定（以前より低速に変更）
 
         # サーボ角度の定義（0°から180°）
         SERVO_NECK_UP = 160    # サーボを上に移動
@@ -171,6 +171,7 @@ def joystick_control(audio_queue):
                 duty_turn = int(turn * MAX_PWM)
 
                 # メカナムホイール用のPWM値の計算（全方向移動をサポート）
+                # 左右移動と旋回が連動するように計算
                 duty_front_left = duty_y + duty_x + duty_turn
                 duty_front_right = duty_y - duty_x - duty_turn
                 duty_back_left = duty_y - duty_x + duty_turn
@@ -187,8 +188,6 @@ def joystick_control(audio_queue):
 
                 # モーターにPWM値を送信
                 motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
-
-                # 車の動作状況のログ出力を削除
 
                 # キューからの音声再生指示を処理
                 try:

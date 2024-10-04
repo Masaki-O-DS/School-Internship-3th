@@ -18,8 +18,8 @@ def send_frame(socket, frame):
     フレームをエンコードして送信する関数
     """
     try:
-        # JPEGにエンコード
-        ret, buffer = cv2.imencode('.jpg', frame)
+        # JPEGにエンコード (qualityを設定して画質を下げる)
+        ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])  # qualityを50に設定
         if not ret:
             logging.error("Failed to encode frame.")
             return
@@ -67,9 +67,9 @@ def camera_control(audio_queue):
         picam2 = Picamera2()
 
         # 解像度とフォーマットの設定
-        resolution = (320, 240)  # フレームサイズを小さくして処理を高速化
+        resolution = (160, 120)  # 解像度をさらに低下
         preview_config = picam2.create_preview_configuration(
-            main={"format": 'RGB888', "size": resolution}
+            main={"format": 'YUV420', "size": resolution}  # 较輝的なフォーマットに変更
         )
         picam2.configure(preview_config)
         picam2.start()
