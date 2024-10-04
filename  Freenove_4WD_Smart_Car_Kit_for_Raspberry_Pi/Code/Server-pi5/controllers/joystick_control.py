@@ -1,4 +1,4 @@
-# controllers/camera_control.py
+# controllers/joystick_control.py
 import cv2
 from cv2 import aruco
 from picamera2 import Picamera2
@@ -51,7 +51,7 @@ class Buzzer:
             logging.info("Buzzer OFF: Stopping sound.")
             self.sound.stop()
 
-def camera_control():
+def joystick_control():
     """
     Continuously captures video from the camera, detects AR markers, and displays the result.
     Press 'q' to exit the camera feed.
