@@ -83,7 +83,7 @@ def joystick_control():
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
                     # Reset Servo0 to neutral when buttons are released
-                    if button in [4, 5]:  # Servo0 buttons
+                    if button in [6, 7]:  # Servo0 buttons
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
                         logging.info("Servo0 reset to neutral position.")
 
@@ -93,7 +93,8 @@ def joystick_control():
                     logging.info(f"Hat {hat} moved. Value: {value}")
 
             # Get joystick axes
-            left_vertical = joystick.get_axis(1)    # Left stick Y-axis
+            left_vertical = joystick.get_axis(1)    # 左スティックY軸（前後）
+            left_horizontal = joystick.get_axis(0)  # 左スティックX軸（左右）
 
             # Display raw axis values
             raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
@@ -102,18 +103,30 @@ def joystick_control():
             # Apply dead zone
             if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
                 left_vertical = 0
+            if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                left_horizontal = 0
 
             # Calculate movement direction
-            y = -left_vertical  # Invert axis for intuitive control
+            y = -left_vertical  # 前後の動き（反転）
+            x = left_horizontal  # 左右の動き
+
 
             # Convert to PWM values (-4095 to 4095)
-            duty = int(y * MAX_PWM)
+            duty_y = int(y * MAX_PWM)
+            duty_x = int(x * MAX_PWM)
 
-            # Set all motors to the same PWM value for forward/backward movement
-            duty_front_left = duty
-            duty_front_right = duty
-            duty_back_left = duty
-            duty_back_right = duty
+            # Convert to PWM values (-4095 to 4095)
+            duty_front_left = duty_y + duty_x
+            duty_front_right = duty_y - duty_x
+            duty_back_left = duty_y + duty_x
+            duty_back_right = duty_y - duty_x
+
+
+            # PWM値を制限（-4095～4095）
+            duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
+            duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
+            duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
+            duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
 
             # Display PWM values
             logging.info(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
