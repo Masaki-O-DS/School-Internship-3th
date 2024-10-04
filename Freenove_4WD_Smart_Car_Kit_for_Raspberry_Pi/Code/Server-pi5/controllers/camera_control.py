@@ -67,7 +67,7 @@ def camera_control(audio_queue):
         picam2 = Picamera2()
 
         # 解像度とフォーマットの設定
-        resolution = (160, 120)  # 解像度をさらに低下
+        resolution = (320, 240)  # 解像度をさらに低下
         preview_config = picam2.create_preview_configuration(
             main={"format": 'YUV420', "size": resolution}  # 较輝的なフォーマットに変更
         )
