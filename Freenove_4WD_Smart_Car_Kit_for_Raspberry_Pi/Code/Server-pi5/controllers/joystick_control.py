@@ -1,13 +1,10 @@
 # controllers/joystick_control.py
-import cv2
-from cv2 import aruco
-from picamera2 import Picamera2
-import time
 import logging
 import threading
 import os
 import sys
 import pygame
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -79,20 +76,20 @@ def joystick_control():
                 if event.type == pygame.JOYBUTTONDOWN:
                     button = event.button
                     logging.info(f"Joystick button {button} pressed.")
-                    # Example: Play buzzer sound on button press
+                    # 例: ボタンが押されたときにブザーを鳴らす
                     buzzer.run('1')
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
                     logging.info(f"Joystick button {button} released.")
-                    # Example: Stop buzzer sound on button release
+                    # 例: ボタンが離されたときにブザーを停止する
                     buzzer.run('0')
 
-            # Example: Read axis values for movement
-            axis_0 = joystick.get_axis(0)  # Left/Right
-            axis_1 = joystick.get_axis(1)  # Up/Down
+            # 例: 軸の値を読み取って移動を制御
+            axis_0 = joystick.get_axis(0)  # 左/右
+            axis_1 = joystick.get_axis(1)  # 上/下
             logging.debug(f"Axis 0: {axis_0}, Axis 1: {axis_1}")
 
-            # Implement car control logic based on axis values here
+            # Car制御ロジックをここに実装
 
             time.sleep(0.1)
 
@@ -105,11 +102,11 @@ def joystick_control():
         logging.info("pygame has been quit.")
 
 if __name__ == "__main__":
-    # Bluetooth speaker connection instructions
+    # Bluetoothスピーカー接続の指示
     logging.info("First, connect the Raspberry Pi to the Bluetooth speaker.")
     logging.info("Hold down the Bluetooth speaker button until you hear a sound to indicate it's ready to connect.")
 
-    # Warning about running as sudo
+    # sudoでの実行に関する警告
     logging.info("Note: Do not run the program with sudo. Running as sudo can cause device configuration issues and errors.")
     logging.info("If the sound does not adjust or mute correctly, right-click the volume button on the top right of the Raspberry Pi 5 desktop screen and select 'Device Profile'.")
 

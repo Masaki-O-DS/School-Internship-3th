@@ -95,6 +95,13 @@ def combined_control():
         fps_thread = threading.Thread(target=update_fps, daemon=True)
         fps_thread.start()
 
+        # imgフォルダのパスを設定
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        img_dir = os.path.join(os.path.dirname(script_dir), 'img')
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir)
+            logging.info(f"Image directory created at {img_dir}")
+
         while True:
             # カメラからのフレームキャプチャ
             frame = picam2.capture_array()
@@ -115,8 +122,9 @@ def combined_control():
                 frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = f"aruco_detected_{timestamp}.png"
-                cv2.imwrite(filename, frame_markers)
-                logging.info(f"AR marker detected. Image saved as {filename}")
+                filepath = os.path.join(img_dir, filename)
+                cv2.imwrite(filepath, frame_markers)
+                logging.info(f"AR marker detected. Image saved as {filepath}")
                 # ブザーの鳴動
                 buzzer.run('1')
             else:
