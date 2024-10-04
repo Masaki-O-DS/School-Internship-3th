@@ -9,7 +9,15 @@ import os
 import queue
 
 # ログの設定
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをERRORに設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # INFOレベルに設定
+
+def save_image(filepath, frame):
+    """画像保存を非同期で行う関数"""
+    try:
+        cv2.imwrite(filepath, frame)
+        logging.info(f"Image saved: {filepath}")
+    except Exception as e:
+        logging.error(f"Failed to save image {filepath}: {e}")
 
 def camera_control(audio_queue):
     """
@@ -22,8 +30,8 @@ def camera_control(audio_queue):
         # Picamera2の初期化
         picam2 = Picamera2()
 
-        # RGB888形式の解像度設定
-        resolution = (640, 480)
+        # 解像度とフォーマットの設定
+        resolution = (320, 240)  # フレームサイズを小さくして処理を高速化
         preview_config = picam2.create_preview_configuration(
             main={"format": 'RGB888', "size": resolution}
         )
@@ -46,6 +54,10 @@ def camera_control(audio_queue):
         # 検出済みのマーカーIDを保持するセット
         detected_ids = set()
 
+        # フレーム処理のインターバル設定
+        process_every_n_frames = 2  # 2フレームごとに処理
+        frame_count = 0
+
         while True:
             # カメラからフレームをキャプチャ
             frame = picam2.capture_array()
@@ -55,35 +67,41 @@ def camera_control(audio_queue):
                 logging.warning("Empty frame captured. Skipping frame processing.")
                 continue
 
-            # ARUCO検出のためにグレースケールに変換
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            frame_count += 1
 
-            # ARUCOマーカーの検出
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+            # 必要に応じてARマーカーを検出
+            if frame_count % process_every_n_frames == 0:
+                # ARUCO検出のためにグレースケールに変換
+                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-            # 検出されたマーカーを元のフレームに描画
-            if ids is not None:
-                ids = ids.flatten()  # IDsを1次元配列に変換
-                new_ids = [marker_id for marker_id in ids if marker_id not in detected_ids]
+                # ARUCOマーカーの検出
+                corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
 
-                if new_ids:
-                    # 新たに検出されたマーカーがある場合のみ処理
-                    frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+                if ids is not None:
+                    ids = ids.flatten()  # IDsを1次元配列に変換
+                    new_ids = [marker_id for marker_id in ids if marker_id not in detected_ids]
 
-                    timestamp = time.strftime("%Y%m%d-%H%M%S")
-                    filename = f"aruco_detected_{timestamp}.png"
-                    filepath = os.path.join(img_dir, filename)
-                    cv2.imwrite(filepath, frame_markers)
-                    logging.info(f"AR marker(s) detected and image saved as {filepath}")
+                    if new_ids:
+                        # 新たに検出されたマーカーがある場合のみ処理
+                        frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
 
-                    # 新たに検出されたマーカーIDをセットに追加
-                    detected_ids.update(new_ids)
+                        timestamp = time.strftime("%Y%m%d-%H%M%S")
+                        filename = f"aruco_detected_{timestamp}.png"
+                        filepath = os.path.join(img_dir, filename)
 
-                    # 音声再生の指示をキューに送信
-                    audio_queue.put("PLAY_AR_SOUND")
+                        # 画像保存を非同期で行う
+                        threading.Thread(target=save_image, args=(filepath, frame_markers), daemon=True).start()
 
-                    # 一定時間後に音声停止の指示を送信（例：2秒後）
-                    threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
+                        logging.info(f"AR marker(s) detected: {new_ids}")
+
+                        # 新たに検出されたマーカーIDをセットに追加
+                        detected_ids.update(new_ids)
+
+                        # 音声再生の指示をキューに送信
+                        audio_queue.put("PLAY_AR_SOUND")
+
+                        # 一定時間後に音声停止の指示を送信（例：2秒後）
+                        threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
                 else:
                     frame_markers = frame.copy()
             else:
