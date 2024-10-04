@@ -6,18 +6,19 @@ from Motor import Motor
 from servo import Servo
 import logging
 import os
+import queue
 
-# Configure logging
+# ログの設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
     def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
-        # Prevent running as sudo
+        # sudoでの実行を防止
         if os.geteuid() == 0: 
             logging.error("Running as sudo is not allowed. Please run without sudo.")
             sys.exit(1)
 
-        # Initialize pygame mixer
+        # pygame mixerの初期化
         try:
             pygame.mixer.init()
             logging.info("pygame.mixer initialized successfully.")
@@ -25,14 +26,14 @@ class Buzzer:
             logging.error(f"Error initializing pygame.mixer: {e}")
             sys.exit(1)
 
-        # Check if sound file exists
+        # サウンドファイルの存在確認
         if not os.path.exists(sound_file):
             logging.error(f"Sound file not found: {sound_file}")
             sys.exit(1)
         else:
             logging.info(f"Sound file found: {sound_file}")
 
-        # Load sound file
+        # サウンドファイルの読み込み
         try:
             self.sound = pygame.mixer.Sound(sound_file)
             self.sound.set_volume(volume)
@@ -49,26 +50,22 @@ class Buzzer:
         logging.info("Buzzer OFF: Stopping sound.")
         self.sound.stop()
 
-def joystick_control():
+def joystick_control(audio_queue):
     """
-    Controls the car and Servo0 (neck) using a joystick.
-    L1 Trigger (Button 6): Move Servo0 downward
-    R1 Trigger (Button 7): Move Servo0 upward
-    Right Stick X-axis (Axis 3): Rotate the car
-    Left Stick X-axis and Y-axis (Axis 0, 1): Move the car forward/backward and left/right without rotation
+    ジョイスティックで車とサーボを制御し、Bluetoothスピーカーで音声を再生します。
     """
     try:
-        # Initialize hardware components
+        # ハードウェアコンポーネントの初期化
         motor = Motor()
         servo = Servo()
 
-        # Initialize Pygame
+        # Pygameの初期化
         pygame.init()
 
-        # Initialize joystick
+        # ジョイスティックの初期化
         pygame.joystick.init()
 
-        # Get the number of connected joysticks
+        # 接続されているジョイスティックの数を取得
         joystick_count = pygame.joystick.get_count()
         logging.info(f"Number of joysticks connected: {joystick_count}")
 
@@ -84,41 +81,42 @@ def joystick_control():
             pygame.quit()
             return
 
-        # Initialize buzzer
+        # ブザーの初期化
         buzzer = Buzzer()
 
-        # Define dead zones
+        # デッドゾーンの設定
         DEAD_ZONE_MOVEMENT = 0.2
         DEAD_ZONE_TURN = 0.2
 
-        # Maximum PWM value
+        # 最大PWM値
         MAX_PWM = 4095
 
-        # Define servo channel
+        # サーボチャンネルの定義
         SERVO_NECK_CHANNEL = '1'  # Servo0: neck up/down
 
-        # Define servo angles within 0° to 180°
-        SERVO_NECK_UP = 160    # Move neck up
-        SERVO_NECK_DOWN = 120  # Move neck down
-        SERVO_NECK_NEUTRAL = 90  # Neutral position for neck servo
+        # サーボ角度の定義（0°から180°）
+        SERVO_NECK_UP = 160    # サーボを上に移動
+        SERVO_NECK_DOWN = 120  # サーボを下に移動
+        SERVO_NECK_NEUTRAL = 90  # サーボの中立位置
 
-        # Set servo to neutral position at start
+        # サーボを中立位置に設定
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
         logging.info("Servo0 set to neutral position.")
 
-        # Initialize clock for FPS calculation
+        # クロックの初期化（FPS制御用）
         clock = pygame.time.Clock()
 
         while True:
+            # イベントの処理
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    return  # Exit loop
+                    return  # ループを抜ける
 
                 elif event.type == pygame.JOYBUTTONDOWN:
                     button = event.button
                     logging.info(f"Button {button} pressed.")
 
-                    # Xbox Controller Button Mapping
+                    # サーボ制御
                     if button == 6:  # L2 Trigger
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
                         logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
@@ -126,37 +124,31 @@ def joystick_control():
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
                         logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
 
-                    # Play buzzer sound on specific button presses if needed
-                    # For example, play sound on button 0
+                    # 特定のボタン押下でブザーを再生
                     if button == 0:
                         buzzer.play()
 
                 elif event.type == pygame.JOYBUTTONUP:
                     button = event.button
-                    # Reset Servo0 to neutral when buttons are released
-                    if button in [6, 7]:  # Servo0 buttons
+                    # サーボを中立位置に戻す
+                    if button in [6, 7]:
                         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
                         logging.info("Servo0 reset to neutral position.")
 
-                    # Stop buzzer sound on specific button releases if needed
+                    # ブザーの停止
                     if button == 0:
                         buzzer.stop()
 
-                elif event.type == pygame.JOYHATMOTION:
-                    hat = event.hat
-                    value = event.value
-                    logging.info(f"Hat {hat} moved. Value: {value}")
-
-            # Get joystick axes
+            # ジョイスティックの軸入力を取得
             left_vertical = joystick.get_axis(1)      # 左スティックY軸（前後）
             left_horizontal = joystick.get_axis(0)    # 左スティックX軸（左右）
             right_horizontal = joystick.get_axis(3)   # 右スティックX軸（旋回）
 
-            # Display raw axis values
+            # 生の軸値をログに表示（デバッグ用）
             raw_axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
             logging.debug(f"Raw axes: {raw_axes}")
 
-            # Apply dead zone
+            # デッドゾーンの適用
             if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
                 left_vertical = 0
             if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
@@ -164,17 +156,17 @@ def joystick_control():
             if abs(right_horizontal) < DEAD_ZONE_TURN:
                 right_horizontal = 0
 
-            # Calculate movement direction
+            # 移動方向の計算
             y = -left_vertical      # 前後の動き（反転）
             x = left_horizontal     # 左右の動き
-            turn = right_horizontal # 旋回（右スティックのみで制御）
+            turn = right_horizontal # 旋回
 
-            # Convert to PWM values (-4095 to 4095)
+            # PWM値への変換（-4095から4095）
             duty_y = int(y * MAX_PWM)
             duty_x = int(x * MAX_PWM)
             duty_turn = int(turn * MAX_PWM)
 
-            # Calculate PWM values for mecanum wheels (supporting omni-directional movement)
+            # メカナムホイール用のPWM値の計算（全方向移動をサポート）
             duty_front_left = duty_y + duty_x + duty_turn
             duty_front_right = duty_y - duty_x - duty_turn
             duty_back_left = duty_y - duty_x + duty_turn
@@ -186,13 +178,13 @@ def joystick_control():
             duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
             duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
 
-            # Display PWM values
+            # PWM値をログに表示（デバッグ用）
             logging.debug(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
-            # Send PWM values to motors
+            # モーターにPWM値を送信
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # Log car movement status
+            # 車の動作状況をログに表示
             if duty_y != 0 or duty_x != 0 or duty_turn != 0:
                 if duty_y > 0:
                     logging.info("Car moving forward.")
@@ -206,7 +198,18 @@ def joystick_control():
             else:
                 logging.info("Car stopped.")
 
-            # Cap the frame rate to 60 FPS
+            # キューからの音声再生指示を処理
+            try:
+                while not audio_queue.empty():
+                    command = audio_queue.get_nowait()
+                    if command == "PLAY_AR_SOUND":
+                        buzzer.play()
+                    elif command == "STOP_AR_SOUND":
+                        buzzer.stop()
+            except queue.Empty:
+                pass
+
+            # FPSを60に制限
             clock.tick(60)
 
     except KeyboardInterrupt:
@@ -215,9 +218,9 @@ def joystick_control():
         logging.error(f"An error occurred: {e}")
     finally:
         try:
-            # Stop motors
+            # モーターを停止
             motor.setMotorModel(0, 0, 0, 0)
-            # Reset servo to neutral position
+            # サーボを中立位置に戻す
             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
             logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:

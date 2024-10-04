@@ -5,32 +5,39 @@ import logging
 import time
 from controllers.joystick_control import joystick_control
 from controllers.camera_control import camera_control
+import queue
 
-# Configure logging for the main thread
+# ログの設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def main():
-    # Create joystick control thread
-    joystick_thread = threading.Thread(target=joystick_control, name='JoystickControlThread')
+    # スレッド間通信用のキューを作成
+    audio_queue = queue.Queue()
+
+    # ジョイスティック制御スレッドの作成
+    joystick_thread = threading.Thread(target=joystick_control, args=(audio_queue,), name='JoystickControlThread')
     
-    # Create camera control thread
-    camera_thread = threading.Thread(target=camera_control, name='CameraControlThread')
+    # カメラ制御スレッドの作成
+    camera_thread = threading.Thread(target=camera_control, args=(audio_queue,), name='CameraControlThread')
     
-    # Start threads as non-daemon (they won't automatically terminate when the main thread exits)
+    # スレッドの開始
     joystick_thread.start()
     logging.info("Joystick control thread started.")
     
     camera_thread.start()
     logging.info("Camera control thread started.")
     
-    # Keep the main thread alive to allow threads to run
+    # メインスレッドを維持
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         logging.info("\nExiting program gracefully.")
     finally:
-        # Threads should handle their own termination gracefully
+        # スレッドに終了を通知（キューにNoneを送信）
+        audio_queue.put(None)
+        
+        # スレッドの終了を待機
         joystick_thread.join()
         camera_thread.join()
         logging.info("All threads have finished. Terminating program.")
