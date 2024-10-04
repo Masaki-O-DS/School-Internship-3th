@@ -34,26 +34,6 @@ def camera_control():
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # Improve corner accuracy
 
-        # Initialize variables for FPS calculation
-        frame_count = 0
-        start_time = time.time()
-        fps = 0
-
-        def update_fps():
-            nonlocal frame_count, start_time, fps
-            while True:
-                time.sleep(0.5)  # Update FPS more frequently
-                elapsed_time = time.time() - start_time
-                if elapsed_time > 0:
-                    fps = frame_count / elapsed_time
-                    logging.info(f"FPS: {fps:.2f}")
-                    frame_count = 0
-                    start_time = time.time()
-
-        # Start a thread to update FPS
-        fps_thread = threading.Thread(target=update_fps, daemon=True)
-        fps_thread.start()
-
         while True:
             # Capture frame from the camera
             frame = picam2.capture_array()
@@ -77,9 +57,6 @@ def camera_control():
 
             # Display the frame with detected markers in a single window
             cv2.imshow("AR Marker Detection", frame_markers)
-
-            # Increment frame count for FPS calculation
-            frame_count += 1
 
             # Exit the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):

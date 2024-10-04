@@ -7,6 +7,7 @@ import logging
 import threading
 import os
 import sys
+from gpiozero import Buzzer as GPIOBuzzer  # GPIOを使用してブザーを制御
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -16,6 +17,7 @@ def combined_control():
     カメラアクセス、ARマーカー検出、およびブザー制御を統合的に管理します。
     """
     picam2 = None
+    buzzer_gpio = None
     try:
         # Picamera2の初期化
         picam2 = Picamera2()
@@ -32,25 +34,12 @@ def combined_control():
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
 
-        # FPS計算の初期化
-        frame_count = 0
-        start_time = time.time()
-        fps = 0
+        # FPS計算の初期化（削除）
+        # frame_count = 0
+        # start_time = time.time()
+        # fps = 0
 
-        def update_fps():
-            nonlocal frame_count, start_time, fps
-            while True:
-                time.sleep(0.5)
-                elapsed_time = time.time() - start_time
-                if elapsed_time > 0:
-                    fps = frame_count / elapsed_time
-                    logging.info(f"FPS: {fps:.2f}")
-                    frame_count = 0
-                    start_time = time.time()
-
-        # FPS更新スレッドの開始
-        fps_thread = threading.Thread(target=update_fps, daemon=True)
-        fps_thread.start()
+        # FPS更新スレッドの削除
 
         # imgフォルダのパスを設定
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -59,10 +48,9 @@ def combined_control():
             os.makedirs(img_dir)
             logging.info(f"Image directory created at {img_dir}")
 
-        # Initialize buzzer control via GPIO (別の方法でブザーを制御)
-        # 例としてGPIOピンを使用してブザーを制御する場合
-        from gpiozero import Buzzer as GPIOBuzzer
+        # GPIOブザーの初期化
         buzzer_gpio = GPIOBuzzer(27)  # ブザーが接続されているGPIOピンを指定
+        logging.info("Buzzer GPIO initialized successfully.")
 
         while True:
             # カメラからのフレームキャプチャ
@@ -96,9 +84,6 @@ def combined_control():
             # フレームの表示
             cv2.imshow("AR Marker Detection", frame_markers)
 
-            # FPSカウントの更新
-            frame_count += 1
-
             # 'q'キーでループを抜ける
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 logging.info("Stopping camera feed.")
@@ -117,11 +102,12 @@ def combined_control():
             except Exception as e:
                 logging.error(f"Error stopping camera: {e}")
         # ブザーの停止
-        try:
-            buzzer_gpio.off()
-            logging.info("Buzzer turned off.")
-        except:
-            pass
+        if buzzer_gpio is not None:
+            try:
+                buzzer_gpio.off()
+                logging.info("Buzzer turned off.")
+            except Exception as e:
+                logging.error(f"Error turning off buzzer: {e}")
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
 
