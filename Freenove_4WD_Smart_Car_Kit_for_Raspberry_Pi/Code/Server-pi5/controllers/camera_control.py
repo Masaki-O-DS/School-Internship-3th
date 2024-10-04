@@ -15,12 +15,13 @@ def camera_control(audio_queue):
     """
     カメラから映像を取得し、ARマーカーを検出します。
     ARマーカーが検出された場合、画像を保存し、Bluetoothスピーカーで音声を再生します。
+    映像をリアルタイムで画面に表示します。
     """
     try:
         # Picamera2の初期化
         picam2 = Picamera2()
 
-        # RGB888形式の低解像度設定（パフォーマンス向上のため）
+        # RGB888形式の解像度設定
         resolution = (640, 480)
         preview_config = picam2.create_preview_configuration(
             main={"format": 'RGB888', "size": resolution}
@@ -93,6 +94,16 @@ def camera_control(audio_queue):
             else:
                 frame_markers = frame.copy()
 
+            # 映像をリアルタイムで表示
+            try:
+                cv2.imshow("AR Marker Detection", frame_markers)
+                # 'q'キーで終了
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    logging.info("Stopping camera feed.")
+                    break
+            except cv2.error as e:
+                logging.error(f"Error displaying frame: {e}")
+
             # FPSカウントを増加
             frame_count += 1
 
@@ -101,7 +112,7 @@ def camera_control(audio_queue):
     except Exception as e:
         logging.error(f"An unexpected error occurred in camera_control: {e}")
     finally:
-        # カメラの停止とOpenCVのウィンドウを閉じる（imshowを使用しないため不要）
+        # カメラの停止とOpenCVのウィンドウを閉じる
         if 'picam2' in locals():
             try:
                 picam2.stop()

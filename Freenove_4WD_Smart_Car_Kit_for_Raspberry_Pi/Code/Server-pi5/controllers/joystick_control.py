@@ -184,7 +184,7 @@ def joystick_control(audio_queue):
             # モーターにPWM値を送信
             motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
 
-            # 車の動作状況をログに表示
+            # 車の動作状況をログに表示（"Car stopped."を削除）
             if duty_y != 0 or duty_x != 0 or duty_turn != 0:
                 if duty_y > 0:
                     logging.info("Car moving forward.")
@@ -195,8 +195,7 @@ def joystick_control(audio_queue):
                     logging.info("Car turning right.")
                 elif duty_turn < 0:
                     logging.info("Car turning left.")
-            else:
-                logging.info("Car stopped.")
+            # "Car stopped."のログを削除
 
             # キューからの音声再生指示を処理
             try:
