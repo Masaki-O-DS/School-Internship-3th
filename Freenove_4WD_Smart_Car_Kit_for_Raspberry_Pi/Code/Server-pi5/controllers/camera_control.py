@@ -91,7 +91,12 @@ def camera_control():
         logging.error(f"An unexpected error occurred in camera_control: {e}")
     finally:
         # Ensure that the camera is stopped and all OpenCV windows are closed
-        picam2.stop()
+        if 'picam2' in locals():
+            try:
+                picam2.stop()
+                logging.info("Camera stopped successfully.")
+            except Exception as e:
+                logging.error(f"Error stopping camera: {e}")
         cv2.destroyAllWindows()
         logging.info("Camera and OpenCV windows have been closed.")
 

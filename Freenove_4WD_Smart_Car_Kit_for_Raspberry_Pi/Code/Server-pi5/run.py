@@ -4,6 +4,7 @@ import sys
 import logging
 import time
 from controllers.combined_control import combined_control  # 修正後のコントローラをインポート
+from controllers.joystick_control import joystick_control    # ジョイスティック制御をインポート
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -11,10 +12,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(me
 def main():
     # カメラおよびジョイスティック制御スレッドの作成
     control_thread = threading.Thread(target=combined_control, name='CombinedControlThread')
+    joystick_thread = threading.Thread(target=joystick_control, name='JoystickControlThread')
 
     # スレッドの開始
     control_thread.start()
     logging.info("Combined control thread started.")
+    
+    joystick_thread.start()
+    logging.info("Joystick control thread started.")
 
     # メインスレッドを維持
     try:
@@ -25,6 +30,7 @@ def main():
     finally:
         # スレッドの終了を待機
         control_thread.join()
+        joystick_thread.join()
         logging.info("All threads have finished. Terminating program.")
         sys.exit()
 

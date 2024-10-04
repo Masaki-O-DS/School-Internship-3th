@@ -53,106 +53,56 @@ class Buzzer:
 
 def joystick_control():
     """
-    Continuously captures video from the camera, detects AR markers, and displays the result.
-    Press 'q' to exit the camera feed.
-    Implements frame rate monitoring and uses an optimal pixel format for efficiency.
+    ジョイスティックを使用してCarを操作します。
     """
-    picam2 = None  # Ensure picam2 is defined before the try block
-
     try:
-        # Initialize Picamera2
-        picam2 = Picamera2()
+        # Initialize pygame
+        pygame.init()
+        pygame.joystick.init()
+        logging.info("pygame initialized successfully.")
 
-        # Use RGB888 format for better compatibility with OpenCV
-        resolution = (640, 480)  # Lower resolution for better performance
-        preview_config = picam2.create_preview_configuration(
-            main={"format": 'RGB888', "size": resolution}
-        )
-        picam2.configure(preview_config)
-        picam2.start()
-        logging.info("Camera started successfully.")
+        # Check for joystick
+        if pygame.joystick.get_count() == 0:
+            logging.error("No joystick detected. Please connect a joystick and try again.")
+            sys.exit(1)
 
-        # Initialize ARUCO dictionary and parameters
-        aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)  # 4x4 bit ARUCO markers
-        parameters = aruco.DetectorParameters_create()
-        parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # Improve corner accuracy
+        joystick = pygame.joystick.Joystick(0)
+        joystick.init()
+        logging.info(f"Joystick '{joystick.get_name()}' initialized.")
 
         # Initialize buzzer
         buzzer = Buzzer()
 
-        # Initialize variables for FPS calculation
-        frame_count = 0
-        start_time = time.time()
-        fps = 0
-
-        def update_fps():
-            nonlocal frame_count, start_time, fps
-            while True:
-                time.sleep(0.2)  # Update FPS more frequently
-                elapsed_time = time.time() - start_time
-                if elapsed_time > 0:
-                    fps = frame_count / elapsed_time
-                    logging.info(f"FPS: {fps:.2f}")
-                    frame_count = 0
-                    start_time = time.time()
-
-        # Start a thread to update FPS
-        fps_thread = threading.Thread(target=update_fps, daemon=True)
-        fps_thread.start()
-
+        # Main loop for joystick control
         while True:
-            # Capture frame from the camera
-            frame = picam2.capture_array()
+            for event in pygame.event.get():
+                if event.type == pygame.JOYBUTTONDOWN:
+                    button = event.button
+                    logging.info(f"Joystick button {button} pressed.")
+                    # Example: Play buzzer sound on button press
+                    buzzer.run('1')
+                elif event.type == pygame.JOYBUTTONUP:
+                    button = event.button
+                    logging.info(f"Joystick button {button} released.")
+                    # Example: Stop buzzer sound on button release
+                    buzzer.run('0')
 
-            # Validate the captured frame
-            if frame is None or frame.size == 0:
-                logging.warning("Empty frame captured. Skipping frame processing.")
-                continue
+            # Example: Read axis values for movement
+            axis_0 = joystick.get_axis(0)  # Left/Right
+            axis_1 = joystick.get_axis(1)  # Up/Down
+            logging.debug(f"Axis 0: {axis_0}, Axis 1: {axis_1}")
 
-            # Convert frame to grayscale for ARUCO detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            # Implement car control logic based on axis values here
 
-            # Detect ARUCO markers in the grayscale frame
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-
-            # Draw detected markers on the original frame
-            if ids is not None:
-                frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
-                # Save the frame when AR marker is detected
-                timestamp = time.strftime("%Y%m%d-%H%M%S")
-                filename = f"aruco_detected_{timestamp}.png"
-                cv2.imwrite(filename, frame_markers)
-                logging.info(f"AR marker detected. Image saved as {filename}")
-                # Play buzzer sound
-                buzzer.run('1')
-            else:
-                frame_markers = frame.copy()
-
-            # Display the frame with detected markers in a single window
-            cv2.imshow("AR Marker Detection", frame_markers)
-
-            # Increment frame count for FPS calculation
-            frame_count += 1
-
-            # Exit the loop if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                logging.info("Stopping camera feed.")
-                break
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
-        logging.info("\nExiting camera program gracefully.")
+        logging.info("\nExiting joystick control gracefully.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred in camera_control: {e}")
+        logging.error(f"An unexpected error occurred in joystick_control: {e}")
     finally:
-        # Ensure that the camera is stopped and all OpenCV windows are closed
-        if picam2 is not None:
-            try:
-                picam2.stop()
-                logging.info("Camera stopped successfully.")
-            except Exception as e:
-                logging.error(f"Error stopping camera: {e}")
-        cv2.destroyAllWindows()
-        logging.info("Camera and OpenCV windows have been closed.")
+        pygame.quit()
+        logging.info("pygame has been quit.")
 
 if __name__ == "__main__":
     # Bluetooth speaker connection instructions

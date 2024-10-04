@@ -13,7 +13,7 @@ import pygame
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
-    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/ Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
+    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
         # sudoでの実行を防止
         if os.geteuid() == 0:
             logging.error("Running as sudo is not allowed. Please run without sudo.")
@@ -121,6 +121,7 @@ def combined_control():
                 buzzer.run('1')
             else:
                 frame_markers = frame.copy()
+                buzzer.run('0')  # ブザーをオフにする
 
             # フレームの表示
             cv2.imshow("AR Marker Detection", frame_markers)
