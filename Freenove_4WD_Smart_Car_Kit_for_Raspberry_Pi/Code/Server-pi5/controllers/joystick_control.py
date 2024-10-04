@@ -91,6 +91,9 @@ def joystick_control(audio_queue):
         # 最大PWM値
         MAX_PWM = 4095
 
+        # 旋回速度スケーリングファクター
+        TURN_SPEED_FACTOR = 0.5  # 旋回速度を50%に設定
+
         # サーボチャンネルの定義
         SERVO_NECK_CHANNEL = '1'  # Servo0: neck up/down
 
@@ -159,7 +162,7 @@ def joystick_control(audio_queue):
             # 移動方向の計算
             y = -left_vertical      # 前後の動き（反転）
             x = left_horizontal     # 左右の動き
-            turn = right_horizontal # 旋回
+            turn = right_horizontal * TURN_SPEED_FACTOR  # 旋回（スケーリングファクターを適用）
 
             # PWM値への変換（-4095から4095）
             duty_y = int(y * MAX_PWM)
@@ -205,6 +208,9 @@ def joystick_control(audio_queue):
                         buzzer.play()
                     elif command == "STOP_AR_SOUND":
                         buzzer.stop()
+                    elif command is None:
+                        logging.info("Joystick control thread received exit signal.")
+                        raise KeyboardInterrupt
             except queue.Empty:
                 pass
 
@@ -212,7 +218,7 @@ def joystick_control(audio_queue):
             clock.tick(60)
 
     except KeyboardInterrupt:
-        logging.info("\nExiting program.")
+        logging.info("\nExiting joystick control thread.")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
     finally:

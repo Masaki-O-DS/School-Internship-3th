@@ -35,26 +35,6 @@ def camera_control(audio_queue):
         parameters = aruco.DetectorParameters_create()
         parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # コーナー精度の向上
 
-        # FPS計算用の変数
-        frame_count = 0
-        start_time = time.time()
-        fps = 0
-
-        def update_fps():
-            nonlocal frame_count, start_time, fps
-            while True:
-                time.sleep(0.5)  # FPSをより頻繁に更新
-                elapsed_time = time.time() - start_time
-                if elapsed_time > 0:
-                    fps = frame_count / elapsed_time
-                    logging.info(f"FPS: {fps:.2f}")
-                    frame_count = 0
-                    start_time = time.time()
-
-        # FPS更新用のスレッドを開始
-        fps_thread = threading.Thread(target=update_fps, daemon=True)
-        fps_thread.start()
-
         # imgフォルダのパスを設定
         script_dir = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(os.path.dirname(script_dir), 'img')
@@ -104,11 +84,10 @@ def camera_control(audio_queue):
             except cv2.error as e:
                 logging.error(f"Error displaying frame: {e}")
 
-            # FPSカウントを増加
-            frame_count += 1
+        logging.info("Camera feed stopped by user.")
 
     except KeyboardInterrupt:
-        logging.info("\nExiting camera program gracefully.")
+        logging.info("\nExiting camera control thread gracefully.")
     except Exception as e:
         logging.error(f"An unexpected error occurred in camera_control: {e}")
     finally:
