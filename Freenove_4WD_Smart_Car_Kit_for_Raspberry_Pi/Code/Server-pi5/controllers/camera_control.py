@@ -1,31 +1,67 @@
 # controllers/camera_control.py
 import cv2
-from cv2 import aruco
 from picamera2 import Picamera2
 import time
 import logging
 import threading
 import os
 import queue
+import zmq
+import numpy as np
+import json
 
 # ログの設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # INFOレベルに設定
 
-def save_image(filepath, frame):
-    """画像保存を非同期で行う関数"""
+def send_frame(socket, frame):
+    """
+    フレームをエンコードして送信する関数
+    """
     try:
-        cv2.imwrite(filepath, frame)
-        logging.info(f"Image saved: {filepath}")
+        # JPEGにエンコード
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            logging.error("Failed to encode frame.")
+            return
+        # バイナリデータとして送信
+        socket.send(buffer.tobytes(), zmq.NOBLOCK)
+    except zmq.Again:
+        logging.warning("Frame sender socket is not ready to receive frames.")
     except Exception as e:
-        logging.error(f"Failed to save image {filepath}: {e}")
+        logging.error(f"Error sending frame: {e}")
+
+def receive_detection(socket):
+    """
+    検出結果を受信する関数
+    """
+    try:
+        message = socket.recv_string(flags=zmq.NOBLOCK)
+        return message
+    except zmq.Again:
+        # メッセージがない場合
+        return None
+    except Exception as e:
+        logging.error(f"Error receiving detection: {e}")
+        return None
 
 def camera_control(audio_queue):
     """
-    カメラから映像を取得し、ARマーカーを検出します。
-    ARマーカーが検出された場合、画像を保存し、Bluetoothスピーカーで音声を再生します。
-    一度検出・保存したARマーカーの画像は再度保存しません。
+    カメラから映像を取得し、ARマーカー検出をMac側で行います。
+    検出結果に応じて音声を再生します。
     映像をリアルタイムで画面に表示します。
     """
+    # ZeroMQコンテキストの作成
+    context = zmq.Context()
+
+    # フレーム送信用ソケット（PUSH）
+    frame_sender = context.socket(zmq.PUSH)
+    frame_sender.connect("tcp://192.168.47.103:5555")  # MacのIPアドレスに置き換えてください
+
+    # 検出結果受信用ソケット（SUB）
+    detection_receiver = context.socket(zmq.SUB)
+    detection_receiver.connect("tcp://192.168.47.103:5556")  # MacのIPアドレスに置き換えてください
+    detection_receiver.setsockopt_string(zmq.SUBSCRIBE, "")  # 全メッセージを購読
+
     try:
         # Picamera2の初期化
         picam2 = Picamera2()
@@ -39,11 +75,6 @@ def camera_control(audio_queue):
         picam2.start()
         logging.info("Camera started successfully.")
 
-        # ARUCO辞書とパラメータの初期化
-        aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)  # 4x4ビットのARUCOマーカー
-        parameters = aruco.DetectorParameters_create()
-        parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX  # コーナー精度の向上
-
         # imgフォルダのパスを設定
         script_dir = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(os.path.dirname(script_dir), 'img')
@@ -55,7 +86,7 @@ def camera_control(audio_queue):
         detected_ids = set()
 
         # フレーム処理のインターバル設定
-        process_every_n_frames = 2  # 2フレームごとに処理
+        process_every_n_frames = 2  # 2フレームごとに送信
         frame_count = 0
 
         while True:
@@ -69,47 +100,34 @@ def camera_control(audio_queue):
 
             frame_count += 1
 
-            # 必要に応じてARマーカーを検出
+            # 必要に応じてフレームを送信
             if frame_count % process_every_n_frames == 0:
-                # ARUCO検出のためにグレースケールに変換
-                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                send_frame(frame_sender, frame)
 
-                # ARUCOマーカーの検出
-                corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-
-                if ids is not None:
-                    ids = ids.flatten()  # IDsを1次元配列に変換
-                    new_ids = [marker_id for marker_id in ids if marker_id not in detected_ids]
-
-                    if new_ids:
-                        # 新たに検出されたマーカーがある場合のみ処理
-                        frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
-
-                        timestamp = time.strftime("%Y%m%d-%H%M%S")
-                        filename = f"aruco_detected_{timestamp}.png"
-                        filepath = os.path.join(img_dir, filename)
-
-                        # 画像保存を非同期で行う
-                        threading.Thread(target=save_image, args=(filepath, frame_markers), daemon=True).start()
-
-                        logging.info(f"AR marker(s) detected: {new_ids}")
-
-                        # 新たに検出されたマーカーIDをセットに追加
-                        detected_ids.update(new_ids)
-
-                        # 音声再生の指示をキューに送信
-                        audio_queue.put("PLAY_AR_SOUND")
-
-                        # 一定時間後に音声停止の指示を送信（例：2秒後）
-                        threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
-                else:
-                    frame_markers = frame.copy()
-            else:
-                frame_markers = frame.copy()
+            # 検出結果を受信
+            detection = receive_detection(detection_receiver)
+            if detection:
+                try:
+                    # 検出結果の処理（JSON形式を想定）
+                    detection_data = json.loads(detection)
+                    marker_ids = detection_data.get("marker_ids", [])
+                    if marker_ids:
+                        new_ids = [marker_id for marker_id in marker_ids if marker_id not in detected_ids]
+                        if new_ids:
+                            logging.info(f"AR marker(s) detected: {new_ids}")
+                            detected_ids.update(new_ids)
+                            # 音声再生の指示をキューに送信
+                            audio_queue.put("PLAY_AR_SOUND")
+                            # 一定時間後に音声停止の指示を送信（例：2秒後）
+                            threading.Timer(2.0, lambda: audio_queue.put("STOP_AR_SOUND")).start()
+                except json.JSONDecodeError as e:
+                    logging.error(f"Error decoding detection data: {e}")
+                except Exception as e:
+                    logging.error(f"Error processing detection data: {e}")
 
             # 映像をリアルタイムで表示
             try:
-                cv2.imshow("AR Marker Detection", frame_markers)
+                cv2.imshow("Camera Feed", frame)
                 # 'q'キーで終了
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     logging.info("Stopping camera feed.")
@@ -131,3 +149,7 @@ def camera_control(audio_queue):
                 logging.error(f"Error stopping camera: {e}")
         cv2.destroyAllWindows()
         logging.info("Camera resources have been released.")
+        # ソケットのクリーンアップ
+        frame_sender.close()
+        detection_receiver.close()
+        context.term()
