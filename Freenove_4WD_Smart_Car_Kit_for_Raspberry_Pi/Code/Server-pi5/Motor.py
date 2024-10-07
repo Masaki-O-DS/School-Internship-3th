@@ -6,7 +6,7 @@ from ADC import *
 class Motor:
     def __init__(self):
         self.pwm = PCA9685(0x40, debug=True)
-        self.pwm.setPWMFreq(50)
+        self.pwm.setPWMFreq(1000)
         self.time_proportion = 3  # 使用されていないようです
         self.adc = Adc()
 
