@@ -96,7 +96,7 @@ def joystick_control(audio_queue):
         MAX_PWM = 4095
 
         # 旋回速度スケーリングファクター
-        TURN_SPEED_FACTOR = 0.4  # 旋回速度を40%に設定（以前より低速に変更）
+        TURN_SPEED_FACTOR = 0.3  # 旋回速度を30%に設定（以前より低速に変更）
 
         # サーボ角度の定義（0°から180°）
         SERVO_NECK_UP = 160    # サーボを上に移動
@@ -163,7 +163,7 @@ def joystick_control(audio_queue):
                 # 移動方向の計算
                 y = -left_vertical      # 前後の動き（反転）
                 x = left_horizontal     # 左右の動き
-                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 0.8)  # 左スティックと連動時は最大速度で旋回
+                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 0.7)  # 左スティックと連動時は最大速度で旋回
 
                 # PWM値への変換（-4095から4095）
                 duty_y = int(y * MAX_PWM)
