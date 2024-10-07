@@ -9,12 +9,14 @@ import logging
 import os
 import queue
 import math
+import threading
+import RPi.GPIO as GPIO
 
-# ログの設定
+# ログの設定（DEBUGレベルに設定）
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
-    def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
+    def __init__(self, sound_file='/path/to/your/sound.wav', volume=0.7):
         # sudoでの実行を防止
         if os.geteuid() == 0:
             logging.error("Running as sudo is not allowed. Please run without sudo.")
@@ -53,20 +55,30 @@ class Buzzer:
         self.sound.stop()
 
 class PIDController:
-    def __init__(self, kp, ki, kd, setpoint=0):
+    def __init__(self, kp, ki, kd, setpoint=0, integral_limit=10.0):
         self.kp = kp
         self.ki = ki
         self.kd = kd
         self.setpoint = setpoint
-        self.integral = 0
-        self.previous_error = 0
+        self.integral = 0.0
+        self.previous_error = 0.0
+        self.integral_limit = integral_limit  # 積分項の上限
 
     def compute(self, measurement, dt):
         error = self.setpoint - measurement
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt if dt > 0 else 0
+
+        if error != 0:
+            self.integral += error * dt
+            # 積分項をクランプ
+            self.integral = max(min(self.integral, self.integral_limit), -self.integral_limit)
+        else:
+            # 誤差がない場合、積分項をリセット
+            self.integral = 0.0
+
+        derivative = (error - self.previous_error) / dt if dt > 0 else 0.0
         output = self.kp * error + self.ki * self.integral + self.kd * derivative
         self.previous_error = error
+
         logging.debug(f"PID Compute -> Error: {error}, Integral: {self.integral}, Derivative: {derivative}, Output: {output}")
         return output
 
@@ -76,8 +88,40 @@ def nonlinear_scale(value, exponent=2):
     exponentの値を調整することで応答曲線を変更可能
     """
     if value == 0:
-        return 0
+        return 0.0
     return math.copysign(abs(value) ** exponent, value)
+
+class Encoder:
+    def __init__(self, pin_a, pin_b):
+        self.pin_a = pin_a
+        self.pin_b = pin_b
+        self.count = 0
+        self.lock = threading.Lock()
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+        GPIO.add_event_detect(self.pin_a, GPIO.BOTH, callback=self.update_count)
+        GPIO.add_event_detect(self.pin_b, GPIO.BOTH, callback=self.update_count)
+
+    def update_count(self, channel):
+        with self.lock:
+            a = GPIO.input(self.pin_a)
+            b = GPIO.input(self.pin_b)
+            if a == b:
+                self.count += 1
+            else:
+                self.count -= 1
+
+    def get_speed(self, dt):
+        with self.lock:
+            speed = self.count / dt  # エンコーダーの仕様に基づいて調整
+            self.count = 0
+        return speed
+
+    def cleanup(self):
+        GPIO.cleanup()
 
 def joystick_control(audio_queue):
     SERVO_NECK_CHANNEL = '1'
@@ -86,8 +130,8 @@ def joystick_control(audio_queue):
     buzzer = None
 
     # 制御パラメータの設定
-    DEAD_ZONE_MOVEMENT = 0.1  # デッドゾーンを0.1に減少
-    DEAD_ZONE_TURN = 0.1
+    DEAD_ZONE_MOVEMENT = 0.15  # デッドゾーンを0.15に増加
+    DEAD_ZONE_TURN = 0.15
     MAX_PWM = 4095
     TURN_SPEED_FACTOR = 0.6  # 旋回速度を60%に増加
     SERVO_NECK_UP = 160
@@ -95,9 +139,10 @@ def joystick_control(audio_queue):
     SERVO_NECK_NEUTRAL = 90
 
     # PIDコントローラーの初期化
-    # 実際の速度センサーからのフィードバックが必要です
-    pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05)
-    # 必要に応じて左右方向や旋回方向にもPIDを追加可能
+    pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05, integral_limit=10.0)
+
+    # エンコーダーの初期化（GPIOピン番号を適宜設定）
+    encoder = Encoder(pin_a=17, pin_b=18)  # 例: GPIO17とGPIO18を使用
 
     try:
         motor = Motor()
@@ -165,26 +210,26 @@ def joystick_control(audio_queue):
 
                 # デッドゾーンの適用
                 if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
-                    left_vertical = 0
+                    left_vertical = 0.0
                 if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
-                    left_horizontal = 0
+                    left_horizontal = 0.0
                 if abs(right_horizontal) < DEAD_ZONE_TURN:
-                    right_horizontal = 0
+                    right_horizontal = 0.0
 
                 # ジョイスティック入力を非線形にスケーリング
                 y_input = nonlinear_scale(-left_vertical, exponent=2)      # 前後の動き（反転）
                 x_input = nonlinear_scale(left_horizontal, exponent=2)     # 左右の動き
-                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0 and y_input == 0) else 0.8), exponent=2)
+                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0.0 and y_input == 0.0) else 0.8), exponent=2)
 
                 # 時間差の計算
                 current_time = time.time()
                 dt = current_time - last_time
                 last_time = current_time
 
-                # PIDコントローラーの適用
-                # 現在の速度を取得する必要があります。ここでは仮に0としています。
-                # 実際には速度センサーからのフィードバックを使用してください。
-                current_speed = 0  # 例: 現在の速度を取得
+                # エンコーダーから現在の速度を取得
+                current_speed = encoder.get_speed(dt)  # 実際の速度センサーから取得
+
+                # PIDコントローラーのセットポイント設定
                 pid_y.setpoint = y_input * 1.0  # 目標速度を設定（必要に応じて調整）
                 control_y = pid_y.compute(measurement=current_speed, dt=dt)
 
@@ -211,6 +256,9 @@ def joystick_control(audio_queue):
                 duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
 
                 # デバッグログを追加
+                logging.debug(f"Raw Joystick Inputs -> Left Vertical: {left_vertical}, Left Horizontal: {left_horizontal}, Right Horizontal: {right_horizontal}")
+                logging.debug(f"Joystick Inputs -> Y: {y_input}, X: {x_input}, Turn: {turn_input}")
+                logging.debug(f"PID Output -> control_y: {control_y}")
                 logging.debug(f"PWM Values -> FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
                 # モーターにPWM値を送信
@@ -257,4 +305,6 @@ def joystick_control(audio_queue):
             logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:
             logging.error(f"Error while stopping motors or resetting servo: {e}")
+        # エンコーダーのクリーンアップ
+        encoder.cleanup()
         pygame.quit()
