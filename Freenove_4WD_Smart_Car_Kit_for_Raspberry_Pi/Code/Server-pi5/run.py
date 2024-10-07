@@ -8,7 +8,7 @@ from controllers.camera_control import camera_control
 import queue
 
 # ログの設定
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをERRORに設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをINFOに設定
 
 def main():
     # スレッド間通信用のキューを作成

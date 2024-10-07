@@ -6,8 +6,8 @@ from ADC import *
 class Motor:
     def __init__(self):
         self.pwm = PCA9685(0x40, debug=True)
-        self.pwm.setPWMFreq(50)
-        self.time_proportion = 3  # ????????
+        self.pwm.setPWMFreq(1000)
+        self.time_proportion = 3  # 使用されていないようです
         self.adc = Adc()
 
     def duty_range(self, duty1, duty2, duty3, duty4):
@@ -70,17 +70,17 @@ class Motor:
 
     def Rotate(self, direction, speed=2000):
         """
-        direction: 'left' ??? 'right'
-        speed: ????????0?4095?
+        direction: 'left' または 'right'
+        speed: 0～4095の範囲
         """
         if direction == 'right':
-            # ???????????????
+            # 右回転
             self.setMotorModel(speed, speed, -speed, -speed)
         elif direction == 'left':
-            # ???????????????
+            # 左回転
             self.setMotorModel(-speed, -speed, speed, speed)
         else:
-            # ??
+            # 停止
             self.setMotorModel(0, 0, 0, 0)
 
     def stop(self):
