@@ -182,4 +182,134 @@ def joystick_control(audio_queue):
                         return
 
                     elif event.type == pygame.JOYBUTTONDOWN:
-                        button = event.butto
+                        button = event.button
+                        logging.info(f"Button {button} pressed.")
+
+                        if button == 6:
+                            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
+                            logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
+                        elif button == 7:
+                            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
+                            logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
+
+                        if button == 0:
+                            buzzer.play()
+
+                    elif event.type == pygame.JOYBUTTONUP:
+                        button = event.button
+                        if button in [6, 7]:
+                            servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+                            logging.info("Servo0 reset to neutral position.")
+
+                        if button == 0:
+                            buzzer.stop()
+
+                # ジョイスティックの軸入力を取得
+                left_vertical = joystick.get_axis(1)
+                left_horizontal = joystick.get_axis(0)
+                right_horizontal = joystick.get_axis(3)
+
+                # デバッグログを追加（生の入力値）
+                logging.debug(f"Raw Joystick Inputs -> Left Vertical: {left_vertical}, Left Horizontal: {left_horizontal}, Right Horizontal: {right_horizontal}")
+
+                # デッドゾーンの適用
+                if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
+                    left_vertical = 0.0
+                if abs(left_horizontal) < DEAD_ZONE_MOVEMENT:
+                    left_horizontal = 0.0
+                if abs(right_horizontal) < DEAD_ZONE_TURN:
+                    right_horizontal = 0.0
+
+                # ジョイスティック入力を非線形にスケーリング
+                y_input = nonlinear_scale(-left_vertical, exponent=2)      # 前後の動き（反転）
+                x_input = nonlinear_scale(left_horizontal, exponent=2)     # 左右の動き
+                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0.0 and y_input == 0.0) else 0.8), exponent=2)
+
+                # 時間差の計算
+                current_time = time.time()
+                dt = current_time - last_time
+                if dt == 0:
+                    dt = 1e-6  # ゼロ除算防止
+                last_time = current_time
+
+                # エンコーダーから現在の速度を取得
+                current_speed = encoder.get_speed(dt)  # 実際の速度センサーから取得
+
+                # PIDコントローラーのセットポイント設定
+                pid_y.setpoint = y_input * 1.0  # 目標速度を設定（必要に応じて調整）
+                control_y = pid_y.compute(measurement=current_speed, dt=dt)
+
+                # PWM値への変換
+                duty_y = int(control_y * MAX_PWM)
+                duty_x = int(x_input * MAX_PWM)
+                duty_turn = int(turn_input * MAX_PWM)
+
+                # PWM値を制限（-4095～4095）
+                duty_y = max(min(duty_y, MAX_PWM), -MAX_PWM)
+                duty_x = max(min(duty_x, MAX_PWM), -MAX_PWM)
+                duty_turn = max(min(duty_turn, MAX_PWM), -MAX_PWM)
+
+                # メカナムホイール用のPWM値の計算
+                duty_front_left = duty_y + duty_x + duty_turn
+                duty_front_right = duty_y - duty_x - duty_turn
+                duty_back_left = duty_y - duty_x + duty_turn
+                duty_back_right = duty_y + duty_x - duty_turn
+
+                # PWM値を制限（-4095～4095）
+                duty_front_left = max(min(duty_front_left, MAX_PWM), -MAX_PWM)
+                duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
+                duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
+                duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
+
+                # デバッグログを追加
+                logging.debug(f"Joystick Inputs -> Y: {y_input}, X: {x_input}, Turn: {turn_input}")
+                logging.debug(f"PID Output -> control_y: {control_y}")
+                logging.debug(f"PWM Values -> FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
+
+                # モーターにPWM値を送信
+                motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+
+                # キューからの音声再生指示を処理
+                try:
+                    while not audio_queue.empty():
+                        command = audio_queue.get_nowait()
+                        if command == "PLAY_AR_SOUND":
+                            buzzer.play()
+                        elif command == "STOP_AR_SOUND":
+                            buzzer.stop()
+                        elif command is None:
+                            logging.info("Joystick control thread received exit signal.")
+                            raise KeyboardInterrupt
+                except queue.Empty:
+                    pass
+
+                # 制御ループのFPSを120に設定
+                clock.tick(120)
+
+            except IOError as e:
+                logging.error(f"I/O error occurred: {e}. Attempting to continue.")
+                if motor:
+                    motor.setMotorModel(0, 0, 0, 0)
+                if servo:
+                    servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+                time.sleep(1)
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}. Exiting joystick control thread.")
+                raise
+
+    except KeyboardInterrupt:
+        logging.info("\nExiting joystick control thread.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+    finally:
+        try:
+            if motor:
+                motor.setMotorModel(0, 0, 0, 0)
+            if servo:
+                servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
+            logging.info("Motors stopped and Servo0 reset to neutral position.")
+        except Exception as e:
+            logging.error(f"Error while stopping motors or resetting servo: {e}")
+        # エンコーダーのクリーンアップ
+        encoder.cleanup()
+        pygame.quit()
