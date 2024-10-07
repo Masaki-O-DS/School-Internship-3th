@@ -99,7 +99,9 @@ class Encoder:
         self.count = 0
         self.lock = threading.Lock()
 
-        GPIO.setmode(GPIO.BCM)
+        # GPIOのセットアップはメインスレッドで行うため、ここではセットモードを呼ばない
+        # GPIO.setmode(GPIO.BCM) をメインで呼び出します
+
         GPIO.setup(self.pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(self.pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
@@ -122,7 +124,8 @@ class Encoder:
         return speed
 
     def cleanup(self):
-        GPIO.cleanup()
+        GPIO.remove_event_detect(self.pin_a)
+        GPIO.remove_event_detect(self.pin_b)
 
 def joystick_control(audio_queue):
     SERVO_NECK_CHANNEL = '1'
@@ -297,19 +300,34 @@ def joystick_control(audio_queue):
                 logging.error(f"Unexpected error: {e}. Exiting joystick control thread.")
                 raise
 
-    except KeyboardInterrupt:
-        logging.info("\nExiting joystick control thread.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-    finally:
+    def main():
+        # GPIOの初期化をメインスレッドで行う
         try:
-            if motor:
-                motor.setMotorModel(0, 0, 0, 0)
-            if servo:
-                servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-            logging.info("Motors stopped and Servo0 reset to neutral position.")
-        except Exception as e:
-            logging.error(f"Error while stopping motors or resetting servo: {e}")
-        # エンコーダーのクリーンアップ
-        encoder.cleanup()
-        pygame.quit()
+            GPIO.setmode(GPIO.BCM)
+            logging.info("GPIO set to BCM mode.")
+        except RuntimeError as e:
+            logging.error(f"Failed to set GPIO mode: {e}")
+            sys.exit(1)
+
+        audio_queue = queue.Queue()
+
+        # JoystickControlThreadを開始
+        joystick_thread = threading.Thread(target=joystick_control, args=(audio_queue,), name="JoystickControlThread")
+        joystick_thread.start()
+
+        try:
+            # メインスレッドでは他の処理を行う（例：カメラ制御）
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.info("Main thread received KeyboardInterrupt. Exiting program.")
+        finally:
+            # プログラム終了時のクリーンアップ
+            logging.info("Cleaning up GPIO.")
+            GPIO.cleanup()
+            joystick_thread.join()
+            pygame.quit()
+            logging.info("Program exited gracefully.")
+
+if __name__ == "__main__":
+    main()
