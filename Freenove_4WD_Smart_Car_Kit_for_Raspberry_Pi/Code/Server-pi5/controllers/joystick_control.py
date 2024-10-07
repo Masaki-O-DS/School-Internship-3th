@@ -11,7 +11,7 @@ import queue
 import math
 
 # ログの設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
     def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
@@ -67,6 +67,7 @@ class PIDController:
         derivative = (error - self.previous_error) / dt if dt > 0 else 0
         output = self.kp * error + self.ki * self.integral + self.kd * derivative
         self.previous_error = error
+        logging.debug(f"PID Compute -> Error: {error}, Integral: {self.integral}, Derivative: {derivative}, Output: {output}")
         return output
 
 def nonlinear_scale(value, exponent=2):
@@ -74,6 +75,8 @@ def nonlinear_scale(value, exponent=2):
     ジョイスティックの入力を非線形にスケーリングする関数
     exponentの値を調整することで応答曲線を変更可能
     """
+    if value == 0:
+        return 0
     return math.copysign(abs(value) ** exponent, value)
 
 def joystick_control(audio_queue):
@@ -92,8 +95,7 @@ def joystick_control(audio_queue):
     SERVO_NECK_NEUTRAL = 90
 
     # PIDコントローラーの初期化
-    # ここでは例として前後方向のPIDを設定
-    # 実際には速度センサーからのフィードバックが必要
+    # 実際の速度センサーからのフィードバックが必要です
     pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05)
     # 必要に応じて左右方向や旋回方向にもPIDを追加可能
 
@@ -170,9 +172,9 @@ def joystick_control(audio_queue):
                     right_horizontal = 0
 
                 # ジョイスティック入力を非線形にスケーリング
-                y_input = nonlinear_scale(-left_vertical)      # 前後の動き（反転）
-                x_input = nonlinear_scale(left_horizontal)     # 左右の動き
-                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0 and y_input == 0) else 0.8))
+                y_input = nonlinear_scale(-left_vertical, exponent=2)      # 前後の動き（反転）
+                x_input = nonlinear_scale(left_horizontal, exponent=2)     # 左右の動き
+                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0 and y_input == 0) else 0.8), exponent=2)
 
                 # 時間差の計算
                 current_time = time.time()
@@ -207,6 +209,9 @@ def joystick_control(audio_queue):
                 duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
                 duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
                 duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
+
+                # デバッグログを追加
+                logging.debug(f"PWM Values -> FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
                 # モーターにPWM値を送信
                 motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
