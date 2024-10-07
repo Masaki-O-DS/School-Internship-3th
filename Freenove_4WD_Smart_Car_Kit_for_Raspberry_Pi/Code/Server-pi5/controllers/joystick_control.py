@@ -1,4 +1,5 @@
 # controllers/joystick_control.py
+
 import time
 import sys
 import pygame
@@ -7,9 +8,10 @@ from servo import Servo
 import logging
 import os
 import queue
+import math
 
 # ログの設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをINFOに設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 class Buzzer:
     def __init__(self, sound_file='/home/ogawamasaki/School-Internship-3th-Car/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server-pi5/data/maou_se_system49.wav', volume=0.7):
@@ -50,27 +52,58 @@ class Buzzer:
         logging.info("Buzzer OFF: Stopping sound.")
         self.sound.stop()
 
+class PIDController:
+    def __init__(self, kp, ki, kd, setpoint=0):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.setpoint = setpoint
+        self.integral = 0
+        self.previous_error = 0
+
+    def compute(self, measurement, dt):
+        error = self.setpoint - measurement
+        self.integral += error * dt
+        derivative = (error - self.previous_error) / dt if dt > 0 else 0
+        output = self.kp * error + self.ki * self.integral + self.kd * derivative
+        self.previous_error = error
+        return output
+
+def nonlinear_scale(value, exponent=2):
+    """
+    ジョイスティックの入力を非線形にスケーリングする関数
+    exponentの値を調整することで応答曲線を変更可能
+    """
+    return math.copysign(abs(value) ** exponent, value)
+
 def joystick_control(audio_queue):
-    """
-    ジョイスティックで車とサーボを制御し、Bluetoothスピーカーで音声を再生します。
-    """
-    SERVO_NECK_CHANNEL = '1'  # サーボチャンネルを関数の先頭で初期化
+    SERVO_NECK_CHANNEL = '1'
     motor = None
     servo = None
     buzzer = None
 
+    # 制御パラメータの設定
+    DEAD_ZONE_MOVEMENT = 0.1  # デッドゾーンを0.1に減少
+    DEAD_ZONE_TURN = 0.1
+    MAX_PWM = 4095
+    TURN_SPEED_FACTOR = 0.6  # 旋回速度を60%に増加
+    SERVO_NECK_UP = 160
+    SERVO_NECK_DOWN = 120
+    SERVO_NECK_NEUTRAL = 90
+
+    # PIDコントローラーの初期化
+    # ここでは例として前後方向のPIDを設定
+    # 実際には速度センサーからのフィードバックが必要
+    pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05)
+    # 必要に応じて左右方向や旋回方向にもPIDを追加可能
+
     try:
-        # ハードウェアコンポーネントの初期化
         motor = Motor()
         servo = Servo()
 
-        # Pygameの初期化
         pygame.init()
-
-        # ジョイスティックの初期化
         pygame.joystick.init()
 
-        # 接続されているジョイスティックの数を取得
         joystick_count = pygame.joystick.get_count()
         logging.info(f"Number of joysticks connected: {joystick_count}")
 
@@ -83,74 +116,50 @@ def joystick_control(audio_queue):
             logging.info(f"Number of hats: {joystick.get_numhats()}")
         else:
             logging.error("No joysticks connected. Exiting program.")
-            return  # ジョイスティックが接続されていない場合は終了
+            return
 
-        # ブザーの初期化
         buzzer = Buzzer()
-
-        # デッドゾーンの設定
-        DEAD_ZONE_MOVEMENT = 0.2
-        DEAD_ZONE_TURN = 0.2
-
-        # 最大PWM値
-        MAX_PWM = 4095
-
-        # 旋回速度スケーリングファクター
-        TURN_SPEED_FACTOR = 0.4  # 旋回速度を40%に設定（以前より低速に変更）
-
-        # サーボ角度の定義（0°から180°）
-        SERVO_NECK_UP = 160    # サーボを上に移動
-        SERVO_NECK_DOWN = 120  # サーボを下に移動
-        SERVO_NECK_NEUTRAL = 90  # サーボの中立位置
 
         # サーボを中立位置に設定
         servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
         logging.info("Servo0 set to neutral position.")
 
-        # クロックの初期化（FPS制御用）
         clock = pygame.time.Clock()
+        last_time = time.time()
 
         while True:
             try:
-                # イベントの処理
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        return  # ループを抜ける
+                        return
 
                     elif event.type == pygame.JOYBUTTONDOWN:
                         button = event.button
                         logging.info(f"Button {button} pressed.")
 
-                        # サーボ制御
-                        if button == 6:  # L2 Trigger
+                        if button == 6:
                             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_DOWN)
                             logging.info(f"Servo0 moved down to {SERVO_NECK_DOWN} degrees.")
-                        elif button == 7:  # R2 Trigger
+                        elif button == 7:
                             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_UP)
                             logging.info(f"Servo0 moved up to {SERVO_NECK_UP} degrees.")
 
-                        # 特定のボタン押下でブザーを再生
                         if button == 0:
                             buzzer.play()
 
                     elif event.type == pygame.JOYBUTTONUP:
                         button = event.button
-                        # サーボを中立位置に戻す
                         if button in [6, 7]:
                             servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
                             logging.info("Servo0 reset to neutral position.")
 
-                        # ブザーの停止
                         if button == 0:
                             buzzer.stop()
 
                 # ジョイスティックの軸入力を取得
-                left_vertical = joystick.get_axis(1)      # 左スティックY軸（前後）
-                left_horizontal = joystick.get_axis(0)    # 左スティックX軸（左右）
-                right_horizontal = joystick.get_axis(3)   # 右スティックX軸（旋回）
-
-                # 生の軸値をログに表示（デバッグ用）
-                logging.debug(f"Raw axes: {[joystick.get_axis(i) for i in range(joystick.get_numaxes())]}")
+                left_vertical = joystick.get_axis(1)
+                left_horizontal = joystick.get_axis(0)
+                right_horizontal = joystick.get_axis(3)
 
                 # デッドゾーンの適用
                 if abs(left_vertical) < DEAD_ZONE_MOVEMENT:
@@ -160,18 +169,34 @@ def joystick_control(audio_queue):
                 if abs(right_horizontal) < DEAD_ZONE_TURN:
                     right_horizontal = 0
 
-                # 移動方向の計算
-                y = -left_vertical      # 前後の動き（反転）
-                x = left_horizontal     # 左右の動き
-                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 0.8)  # 左スティックと連動時は最大速度で旋回
+                # ジョイスティック入力を非線形にスケーリング
+                y_input = nonlinear_scale(-left_vertical)      # 前後の動き（反転）
+                x_input = nonlinear_scale(left_horizontal)     # 左右の動き
+                turn_input = nonlinear_scale(right_horizontal * (TURN_SPEED_FACTOR if (x_input == 0 and y_input == 0) else 0.8))
 
-                # PWM値への変換（-4095から4095）
-                duty_y = int(y * MAX_PWM)
-                duty_x = int(x * MAX_PWM)
-                duty_turn = int(turn * MAX_PWM)
+                # 時間差の計算
+                current_time = time.time()
+                dt = current_time - last_time
+                last_time = current_time
 
-                # メカナムホイール用のPWM値の計算（全方向移動をサポート）
-                # 左右移動と旋回が連動するように計算
+                # PIDコントローラーの適用
+                # 現在の速度を取得する必要があります。ここでは仮に0としています。
+                # 実際には速度センサーからのフィードバックを使用してください。
+                current_speed = 0  # 例: 現在の速度を取得
+                pid_y.setpoint = y_input * 1.0  # 目標速度を設定（必要に応じて調整）
+                control_y = pid_y.compute(measurement=current_speed, dt=dt)
+
+                # PWM値への変換
+                duty_y = int(control_y * MAX_PWM)
+                duty_x = int(x_input * MAX_PWM)
+                duty_turn = int(turn_input * MAX_PWM)
+
+                # PWM値を制限（-4095～4095）
+                duty_y = max(min(duty_y, MAX_PWM), -MAX_PWM)
+                duty_x = max(min(duty_x, MAX_PWM), -MAX_PWM)
+                duty_turn = max(min(duty_turn, MAX_PWM), -MAX_PWM)
+
+                # メカナムホイール用のPWM値の計算
                 duty_front_left = duty_y + duty_x + duty_turn
                 duty_front_right = duty_y - duty_x - duty_turn
                 duty_back_left = duty_y - duty_x + duty_turn
@@ -182,9 +207,6 @@ def joystick_control(audio_queue):
                 duty_front_right = max(min(duty_front_right, MAX_PWM), -MAX_PWM)
                 duty_back_left = max(min(duty_back_left, MAX_PWM), -MAX_PWM)
                 duty_back_right = max(min(duty_back_right, MAX_PWM), -MAX_PWM)
-
-                # PWM値をログに表示（デバッグ用）
-                logging.debug(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
                 # モーターにPWM値を送信
                 motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
@@ -203,8 +225,8 @@ def joystick_control(audio_queue):
                 except queue.Empty:
                     pass
 
-                # FPSを60に制限
-                clock.tick(60)
+                # 制御ループのFPSを120に設定
+                clock.tick(120)
 
             except IOError as e:
                 logging.error(f"I/O error occurred: {e}. Attempting to continue.")
@@ -212,7 +234,7 @@ def joystick_control(audio_queue):
                     motor.setMotorModel(0, 0, 0, 0)
                 if servo:
                     servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
-                time.sleep(1)  # 再試行前に待機
+                time.sleep(1)
             except Exception as e:
                 logging.error(f"Unexpected error: {e}. Exiting joystick control thread.")
                 raise
@@ -224,10 +246,8 @@ def joystick_control(audio_queue):
     finally:
         try:
             if motor:
-                # モーターを停止
                 motor.setMotorModel(0, 0, 0, 0)
             if servo:
-                # サーボを中立位置に戻す
                 servo.setServoPwm(SERVO_NECK_CHANNEL, SERVO_NECK_NEUTRAL)
             logging.info("Motors stopped and Servo0 reset to neutral position.")
         except Exception as e:
