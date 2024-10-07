@@ -55,7 +55,7 @@ class Buzzer:
         self.sound.stop()
 
 class PIDController:
-    def __init__(self, kp, ki, kd, setpoint=0, integral_limit=10.0):
+    def __init__(self, kp, ki, kd, setpoint=0, integral_limit=10.0, epsilon=1e-5):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -63,11 +63,12 @@ class PIDController:
         self.integral = 0.0
         self.previous_error = 0.0
         self.integral_limit = integral_limit  # 積分項の上限
+        self.epsilon = epsilon  # 誤差の閾値
 
     def compute(self, measurement, dt):
         error = self.setpoint - measurement
 
-        if error != 0:
+        if abs(error) > self.epsilon:
             self.integral += error * dt
             # 積分項をクランプ
             self.integral = max(min(self.integral, self.integral_limit), -self.integral_limit)
@@ -133,13 +134,13 @@ def joystick_control(audio_queue):
     DEAD_ZONE_MOVEMENT = 0.15  # デッドゾーンを0.15に増加
     DEAD_ZONE_TURN = 0.15
     MAX_PWM = 4095
-    TURN_SPEED_FACTOR = 0.6  # 旋回速度を60%に増加
+    TURN_SPEED_FACTOR = 0.6  # 旋回速度を60%に設定
     SERVO_NECK_UP = 160
     SERVO_NECK_DOWN = 120
     SERVO_NECK_NEUTRAL = 90
 
     # PIDコントローラーの初期化
-    pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05, integral_limit=10.0)
+    pid_y = PIDController(kp=1.0, ki=0.1, kd=0.05, integral_limit=10.0, epsilon=1e-5)
 
     # エンコーダーの初期化（GPIOピン番号を適宜設定）
     encoder = Encoder(pin_a=17, pin_b=18)  # 例: GPIO17とGPIO18を使用
