@@ -9,7 +9,7 @@ class Motor:
         self.pwm.setPWMFreq(1000)
         self.time_proportion = 3  # 使用されていないようです
         self.adc = Adc()
-        self.left_motor_scaling = 0.1  # 左側モーターのスケーリングファクター
+        self.left_motor_scaling = 0.4  # 左側モーターのスケーリングファクター
 
     def duty_range(self, duty1, duty2, duty3, duty4):
         duty1 = max(min(duty1, 4095), -4095)
