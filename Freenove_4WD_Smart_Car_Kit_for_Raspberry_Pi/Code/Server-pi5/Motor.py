@@ -67,7 +67,7 @@ class Motor:
     def setMotorModel(self, duty1, duty2, duty3, duty4, turning=False):
         duty1, duty2, duty3, duty4 = self.duty_range(duty1, duty2, duty3, duty4)
         if turning:
-            scaling = 0.7  # 旋回時のスケーリング
+            scaling = 1.2  # 旋回時のスケーリング
         else:
             scaling = 0.8  # 直進時のスケーリング
         # 左側のモーターのデューティ比を調整
