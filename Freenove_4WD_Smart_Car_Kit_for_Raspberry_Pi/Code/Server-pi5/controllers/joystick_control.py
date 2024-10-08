@@ -66,7 +66,7 @@ ROTATE_PARAMS = {
     'left_45': {
         'direction': 'right',
         'angle': 90,            # 旋回角度（度）
-        'duration': 0.21,        # 旋回に必要な時間（秒）
+        'duration': 0.208,        # 旋回に必要な時間（秒）
         'speed': 4000           # 旋回時の速度（PWM値）
     }
 }
