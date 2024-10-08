@@ -163,7 +163,7 @@ def joystick_control(audio_queue):
                 # 移動方向の計算
                 y = -left_vertical      # 前後の動き（反転）
                 x = left_horizontal     # 左右の動き
-                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 0.7)  # 左スティックと連動時は最大速度で旋回
+                turn = right_horizontal * (TURN_SPEED_FACTOR if (x == 0 and y == 0) else 0.7)  # 左スティックと連動時は旋回速度を調整
 
                 # PWM値への変換（-4095から4095）
                 duty_y = int(y * MAX_PWM)
@@ -186,8 +186,17 @@ def joystick_control(audio_queue):
                 # PWM値をログに表示（デバッグ用）
                 logging.debug(f"PWM values - FL: {duty_front_left}, FR: {duty_front_right}, BL: {duty_back_left}, BR: {duty_back_right}")
 
+                # 旋回中かどうかを判定
+                is_turning = (turn != 0)
+
                 # モーターにPWM値を送信
-                motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right)
+                motor.setMotorModel(duty_front_left, duty_back_left, duty_front_right, duty_back_right, turning=is_turning)
+
+                # デバッグログの強化（スケーリング後のPWM値を表示）
+                logging.debug(f"Scaled PWM values - FL: {int(duty_front_left * motor.left_motor_scaling * (0.7 if is_turning else 0.8))}, "
+                              f"FR: {duty_front_right}, "
+                              f"BL: {int(duty_back_left * motor.left_motor_scaling * (0.7 if is_turning else 0.8))}, "
+                              f"BR: {duty_back_right}")
 
                 # キューからの音声再生指示を処理
                 try:
