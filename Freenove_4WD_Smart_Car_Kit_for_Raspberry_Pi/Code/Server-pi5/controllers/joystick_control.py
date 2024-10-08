@@ -53,19 +53,23 @@ class Buzzer:
 
 # 定数の定義
 BUTTON_R1 = 5  # R1ボタンのインデックス（必要に応じて調整）
-# 旋回パラメータ
+
+# 旋回パラメータ（調整可能）
 ROTATE_PARAMS = {
     'right': {
         'duration': 5.0,    # 90度回転に必要な時間（秒）（実際のハードウェアに合わせて調整）
-        'speed': 4000       # 旋回時の速度（デフォルト: 2000）
+        'speed': 4000       # 旋回時の速度（PWM値）（デフォルト: 4000）
     },
     'left': {
-        'duration': 1.0,    # 左旋回用のパラメータ
-        'speed': 2000
+        'duration': 5.0,    # 左旋回用のパラメータ
+        'speed': 4000
     }
 }
 
-def perform_rotation(motor, direction='right', duration=1.0, speed=2000):
+# 旋回中かどうかを示すイベント
+rotation_event = threading.Event()
+
+def perform_rotation(motor, direction='right', duration=5.0, speed=4000):
     """
     指定された方向に指定された速度と時間で旋回を実行します。
 
@@ -74,11 +78,18 @@ def perform_rotation(motor, direction='right', duration=1.0, speed=2000):
     :param duration: 旋回にかかる時間（秒）
     :param speed: 旋回時の速度（PWM値）
     """
-    logging.info(f"90度回転開始: {direction}方向、速度: {speed}, 時間: {duration}秒")
-    motor.Rotate(direction, speed=speed)
-    time.sleep(duration)
-    motor.stop()
-    logging.info("90度回転完了")
+    try:
+        rotation_event.set()  # 旋回開始
+        logging.info(f"90度回転開始: {direction}方向、速度: {speed}, 時間: {duration}秒")
+        motor.Rotate(direction, speed=speed)
+        time.sleep(duration)
+        motor.stop()
+        logging.info("90度回転完了")
+    except Exception as e:
+        logging.error(f"旋回中にエラーが発生しました: {e}")
+        motor.stop()
+    finally:
+        rotation_event.clear()  # 旋回終了
 
 def joystick_control(audio_queue):
     """
@@ -167,8 +178,8 @@ def joystick_control(audio_queue):
                         if button == 0:
                             buzzer.play()
 
-                        # R1ボタン押下で90度回転
-                        if button == BUTTON_R1:
+                        # R1ボタン押下で90度回転（旋回中でない場合）
+                        if button == BUTTON_R1 and not rotation_event.is_set():
                             logging.info("R1ボタンが押されました。90度回転を開始します。")
                             # パラメータを変更したい場合は以下の値を調整してください
                             rotation_direction = 'right'  # 'left' または 'right'
@@ -179,6 +190,8 @@ def joystick_control(audio_queue):
                                 args=(motor, rotation_direction, rotation_duration, rotation_speed),
                                 daemon=True
                             ).start()
+                        elif button == BUTTON_R1 and rotation_event.is_set():
+                            logging.info("現在旋回中です。R1ボタンの押下を無視します。")
 
                     elif event.type == pygame.JOYBUTTONUP:
                         button = event.button
@@ -190,6 +203,12 @@ def joystick_control(audio_queue):
                         # ブザーの停止
                         if button == 0:
                             buzzer.stop()
+
+                # 旋回中の場合、ジョイスティック入力を無視
+                if rotation_event.is_set():
+                    logging.info("旋回中のため、ジョイスティック入力を無視します。")
+                    clock.tick(60)
+                    continue  # ループの先頭に戻る
 
                 # ジョイスティックの軸入力を取得
                 left_vertical = joystick.get_axis(1)      # 左スティックY軸（前後）
