@@ -7,6 +7,7 @@ from servo import Servo
 import logging
 import os
 import queue
+import threading  # 追加
 
 # ログの設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')  # ログレベルをINFOに設定
@@ -50,6 +51,17 @@ class Buzzer:
         logging.info("Buzzer OFF: Stopping sound.")
         self.sound.stop()
 
+# 定数の定義
+BUTTON_R1 = 5  # R1ボタンのインデックス（必要に応じて調整）
+ROTATE_DURATION = 1.0  # 90度回転に必要な時間（秒）（実際のハードウェアに合わせて調整）
+
+def perform_rotation(motor, direction='right'):
+    logging.info(f"90度回転開始: {direction}方向")
+    motor.Rotate(direction)
+    time.sleep(ROTATE_DURATION)
+    motor.stop()
+    logging.info("90度回転完了")
+
 def joystick_control(audio_queue):
     """
     ジョイスティックで車とサーボを制御し、Bluetoothスピーカーで音声を再生します。
@@ -81,6 +93,10 @@ def joystick_control(audio_queue):
             logging.info(f"Number of axes: {joystick.get_numaxes()}")
             logging.info(f"Number of buttons: {joystick.get_numbuttons()}")
             logging.info(f"Number of hats: {joystick.get_numhats()}")
+
+            # ジョイスティックのボタン一覧をログに出力（デバッグ用）
+            for i in range(joystick.get_numbuttons()):
+                logging.info(f"Button {i}: Initial state: {joystick.get_button(i)}")
         else:
             logging.error("No joysticks connected. Exiting program.")
             return  # ジョイスティックが接続されていない場合は終了
@@ -132,6 +148,11 @@ def joystick_control(audio_queue):
                         # 特定のボタン押下でブザーを再生
                         if button == 0:
                             buzzer.play()
+
+                        # R1ボタン押下で90度回転
+                        if button == BUTTON_R1:
+                            logging.info("R1ボタンが押されました。90度回転を開始します。")
+                            threading.Thread(target=perform_rotation, args=(motor, 'right'), daemon=True).start()
 
                     elif event.type == pygame.JOYBUTTONUP:
                         button = event.button
