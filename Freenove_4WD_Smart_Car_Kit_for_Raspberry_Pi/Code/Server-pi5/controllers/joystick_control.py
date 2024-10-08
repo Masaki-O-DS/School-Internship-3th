@@ -53,12 +53,30 @@ class Buzzer:
 
 # 定数の定義
 BUTTON_R1 = 5  # R1ボタンのインデックス（必要に応じて調整）
-ROTATE_DURATION = 1.0  # 90度回転に必要な時間（秒）（実際のハードウェアに合わせて調整）
+# 旋回パラメータ
+ROTATE_PARAMS = {
+    'right': {
+        'duration': 1.0,    # 90度回転に必要な時間（秒）（実際のハードウェアに合わせて調整）
+        'speed': 4000       # 旋回時の速度（デフォルト: 2000）
+    },
+    'left': {
+        'duration': 1.0,    # 左旋回用のパラメータ
+        'speed': 2000
+    }
+}
 
-def perform_rotation(motor, direction='right'):
-    logging.info(f"90度回転開始: {direction}方向")
-    motor.Rotate(direction)
-    time.sleep(ROTATE_DURATION)
+def perform_rotation(motor, direction='right', duration=1.0, speed=2000):
+    """
+    指定された方向に指定された速度と時間で旋回を実行します。
+
+    :param motor: Motorオブジェクト
+    :param direction: 'left' または 'right'
+    :param duration: 旋回にかかる時間（秒）
+    :param speed: 旋回時の速度（PWM値）
+    """
+    logging.info(f"90度回転開始: {direction}方向、速度: {speed}, 時間: {duration}秒")
+    motor.Rotate(direction, speed=speed)
+    time.sleep(duration)
     motor.stop()
     logging.info("90度回転完了")
 
@@ -152,7 +170,15 @@ def joystick_control(audio_queue):
                         # R1ボタン押下で90度回転
                         if button == BUTTON_R1:
                             logging.info("R1ボタンが押されました。90度回転を開始します。")
-                            threading.Thread(target=perform_rotation, args=(motor, 'right'), daemon=True).start()
+                            # パラメータを変更したい場合は以下の値を調整してください
+                            rotation_direction = 'right'  # 'left' または 'right'
+                            rotation_duration = ROTATE_PARAMS[rotation_direction]['duration']
+                            rotation_speed = ROTATE_PARAMS[rotation_direction]['speed']
+                            threading.Thread(
+                                target=perform_rotation,
+                                args=(motor, rotation_direction, rotation_duration, rotation_speed),
+                                daemon=True
+                            ).start()
 
                     elif event.type == pygame.JOYBUTTONUP:
                         button = event.button
